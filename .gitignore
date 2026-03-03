@@ -1,0 +1,5 @@
+# Ignore everything inside the folder
+dataset/*
+__pycache__/
+experiments/
+predictions/
