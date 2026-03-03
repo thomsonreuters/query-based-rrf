@@ -1,0 +1,36 @@
+data:
+  eval_split: 0.1
+  test_file: 
+  train_file: /extra/huaiyaom0/tr-intern/wrrf/dataset/msmarco/mrr_runs/train/top200/results_train_bm25_vs_biencoder_best_weights_final_mean_with_text.csv
+  train_split: 0.9
+experiment:
+  description: Baseline RoBERTa large regression model (1) trained on nfcorpus only
+  name: msmarco-bm25_vs_biencoder
+  tags:
+  - baseline
+  - roberta
+  - regression
+model:
+  attention_dropout: 0.01
+  dropout: 0.01
+  max_length: 64
+  name: roberta-large # roberta-large, roberta-base
+testing:
+  batch_size: 256
+training:
+  early_stopping_patience: 10
+  eval_steps: 200
+  learning_rate: 2.0e-05
+  logging_steps: 200
+  lr_scheduler_type: linear
+  max_grad_norm: 0.5
+  num_train_epochs: 10
+  per_device_eval_batch_size: 256
+  per_device_train_batch_size: 256
+  save_steps: 200
+  save_total_limit: 2
+  seed: 42
+  warmup_steps: 500
+  weight_decay: 0.001
+  # gradient_accumulation_steps: 8
+  
