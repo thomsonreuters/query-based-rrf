@@ -1,0 +1,36 @@
+analysis:
+  save_coefficient_plots: true
+  save_feature_importance: true
+  top_features_count: 30
+data:
+  eval_split: 0.1
+  test_file: 
+  train_file: 
+  train_split: 0.9
+experiment:
+  description: Baseline TF-IDF with Ridge Regression model, trained on old acord only, 1 to n
+  name: 
+  tags:
+  - baseline
+  - tfidf
+  - ridge-regression
+  - mean_best_weight
+model:
+  max_df: 0.95
+  max_features: null
+  min_df: 2
+  ngram_range:
+  - 1
+  - 4
+  stop_words: english
+  sublinear_tf: true
+regression:
+  alpha: 100
+  fit_intercept: true
+  positive: false
+  solver: auto
+training:
+  random_state: 42
+  seed: 42
+  test_size: 0.1
+
