@@ -15,6 +15,10 @@ Choose the script based on the dataset characteristics:
 * If each query has **only one relevant document**, use the **MRR-based** script.
 * If each query has **multiple relevant documents**, use the **nDCG-based** script.
 
+**Note**: A query can have more than one optimal weight that achieves the highest MRR or nDCG score. However, some queries may not have any optimal weights because their MRR or nDCG score is 0 across all weight ranges.
+
+### Mean Optimal Weight
+
 ---
 
 ## Fusion Strategy Evaluation
