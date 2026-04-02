@@ -1,0 +1,324 @@
+query_id,query_text,predicted_weight,ndcg_of_predicted_weight,difference_of_ndcg
+PLAIN-3026,Vitamin C-Enriched Bacon,0.36,1.0,0.3691
+PLAIN-418,Fresh fruit versus frozen--which is better?,0.36,0.7975,0.1962
+PLAIN-1419,insects,0.4,0.7412,0.1938
+PLAIN-3292,Are Multivitamins Good For You?,0.36,0.8084,0.1842
+PLAIN-1409,industrial toxins,0.39,0.2941,0.1571
+PLAIN-2580,Academy of Nutrition and Dietetics Conflicts of Interest,0.37,0.3942,0.1302
+PLAIN-1485,lard,0.43,0.1299,0.1299
+PLAIN-3141,Relieving Yourself of Excess Estrogen,0.36,0.4064,0.1228
+PLAIN-344,Dioxins Stored in Our Own Fat May Increase Diabetes Risk,0.35,0.5417,0.1201
+PLAIN-3382,Are Artificial Colors Bad for You?,0.37,0.4585,0.1173
+PLAIN-817,canker sores,0.4,0.5,0.1131
+PLAIN-3037,Out of the Lab Onto the Track,0.38,0.1128,0.1128
+PLAIN-1547,lyme disease,0.38,0.1078,0.1078
+PLAIN-307,Vitamin D: Shedding some light on the new recommendations,0.38,0.8603,0.1017
+PLAIN-2740,Cancer Risk From CT Scan Radiation,0.36,0.6001,0.0986
+PLAIN-2690,Chronic Headaches and Pork Tapeworms,0.36,0.6089,0.0964
+PLAIN-2177,sulfur,0.43,0.5101,0.093
+PLAIN-280,Mercury Testing Recommended Before Pregnancy,0.38,0.5174,0.0925
+PLAIN-1342,heme iron,0.42,0.5428,0.088
+PLAIN-3201,Acne & Cancer Connection,0.38,0.3747,0.0848
+PLAIN-33,What’s Driving America’s Obesity Problem?,0.32,0.282,0.0845
+PLAIN-3001,EPIC Findings on Lymphoma,0.39,0.3869,0.0803
+PLAIN-571,anisakis,0.41,0.3042,0.0795
+PLAIN-1867,pineapples,0.42,0.2529,0.0795
+PLAIN-91,Chronic Headaches and Pork Parasites,0.35,0.7399,0.0794
+PLAIN-1299,growth promoters,0.38,0.2368,0.0783
+PLAIN-499,African-American,0.4,0.4473,0.0755
+PLAIN-2550,Barriers to Heart Disease Prevention,0.37,0.1192,0.0738
+PLAIN-1151,factory farming practices,0.4,0.7818,0.0734
+PLAIN-2009,rhabdomyolysis,0.41,0.1996,0.0731
+PLAIN-3352,Boosting Heart Nerve Control,0.37,0.2107,0.0712
+PLAIN-3181,Is Dragon Fruit Good For You?,0.39,0.0694,0.0694
+PLAIN-1050,Dr. Dean Ornish,0.39,0.2736,0.0685
+PLAIN-882,Chernobyl,0.41,0.7859,0.0675
+PLAIN-1527,liver disease,0.38,1.0,0.0663
+PLAIN-2630,Alkylphenol Endocrine Disruptors and Allergies,0.35,0.8097,0.0663
+PLAIN-270,Is Caffeinated Tea Really Dehydrating?,0.39,0.2025,0.0636
+PLAIN-956,cooking methods,0.4,0.776,0.0636
+PLAIN-2650,Turmeric Curcumin and Osteoarthritis,0.39,0.4959,0.0636
+PLAIN-1387,hyperactivity,0.4,0.7788,0.0636
+PLAIN-3332,Alcohol Risks vs. Benefits,0.38,0.8325,0.0551
+PLAIN-711,blood clots,0.39,0.8263,0.051
+PLAIN-3241,Apthous Ulcer Mystery Solved,0.39,0.2276,0.0472
+PLAIN-2354,walnut oil,0.42,0.5531,0.0444
+PLAIN-3442,The Healthiest Vegetables,0.39,0.0424,0.0424
+PLAIN-2750,Preventing the Common Cold with Probiotics?,0.35,0.6255,0.0413
+PLAIN-1929,prenatal vitamins,0.4,0.11,0.0406
+PLAIN-2460,Diabetes as a Disease of Fat Toxicity,0.34,0.2101,0.0369
+PLAIN-3322,Veggies vs. Cancer,0.38,0.2394,0.0346
+PLAIN-186,Best Treatment for Constipation,0.36,0.1389,0.0289
+PLAIN-3085,The Difficulty of Arriving at a Vitamin D Recommendation,0.36,0.4218,0.0262
+PLAIN-1262,Global Burden of Disease Study,0.36,0.469,0.0249
+PLAIN-2480,Preventing Ulcerative Colitis with Diet,0.36,0.4026,0.0248
+PLAIN-2019,rickets,0.4,0.6788,0.0242
+PLAIN-165,Breast Cancer & Alcohol: How Much is Safe?,0.35,0.5771,0.0235
+PLAIN-2620,Phytates for the Treatment of Cancer,0.36,0.7931,0.0203
+PLAIN-3151,Too Much Iodine Can Be as Bad as Too Little,0.36,0.7011,0.0166
+PLAIN-1225,fructose,0.43,0.7412,0.0155
+PLAIN-1557,magnesium,0.44,0.3223,0.0153
+PLAIN-1537,low-carb diets,0.38,0.2489,0.0152
+PLAIN-1590,medical ethics,0.4,0.11,0.0152
+PLAIN-112,Food Dyes and ADHD,0.36,0.5983,0.0135
+PLAIN-2700,Heart Disease Starts in Childhood,0.37,0.3995,0.0132
+PLAIN-2220,tempeh,0.43,0.4671,0.013
+PLAIN-2800,Prolonged Liver Function Enhancement From Broccoli,0.38,0.058,0.0107
+PLAIN-1453,junk food,0.41,0.7859,0.0106
+PLAIN-3161,Is Milk and Mucus a Myth?,0.36,0.4852,0.01
+PLAIN-468,Is vitamin D3 (cholecalciferol) preferable to D2 (ergocalciferol)?,0.36,0.4492,0.0099
+PLAIN-259,Optimal Phytosterol Dose and Source,0.36,0.5175,0.0098
+PLAIN-613,ascorbic acid,0.42,0.0784,0.009
+PLAIN-977,crib death,0.41,0.1564,0.0084
+PLAIN-2610,Treating Asthma With Plants vs. Supplements?,0.37,0.3038,0.0083
+PLAIN-2332,viral infections,0.39,0.7574,0.0068
+PLAIN-2061,seafood,0.43,0.9216,0.0067
+PLAIN-2670,Is Caramel Color Carcinogenic?,0.39,0.4575,0.0067
+PLAIN-1601,memory,0.4,0.7223,0.0067
+PLAIN-2600,Eggs and Arterial Function,0.37,0.6604,0.0061
+PLAIN-761,breast pain,0.4,0.2918,0.0054
+PLAIN-2450,Are Organic Foods Safer?,0.38,0.2173,0.0051
+PLAIN-827,carcinogens,0.39,0.8604,0.0051
+PLAIN-2660,How Long to Detox From Fish Before Pregnancy?,0.36,0.2583,0.005
+PLAIN-2520,Caloric Restriction vs. Plant-Based Diets,0.34,0.2429,0.0049
+PLAIN-102,Stopping Heart Disease in Childhood,0.37,0.375,0.0043
+PLAIN-2970,Preventing Cataracts with Diet,0.37,0.4484,0.0043
+PLAIN-2102,smoking,0.44,0.7105,0.004
+PLAIN-1018,DHA,0.41,0.5368,0.0039
+PLAIN-78,What Do Meat Purge and Cola Have in Common?,0.35,0.1846,0.0037
+PLAIN-2570,Diabetics Should Take Their Pulses,0.36,0.3216,0.0036
+PLAIN-488,adenovirus 36,0.39,0.9337,0.0031
+PLAIN-371,Any update on the scary in vitro avocado data?,0.39,0.4608,0.003
+PLAIN-3191,Is Distilled Fish Oil Toxin-Free?,0.38,0.4147,0.002
+PLAIN-133,Starving Tumors of Their Blood Supply,0.37,0.1737,0.0016
+PLAIN-3312,Sexually Transmitted Fish Toxin,0.34,0.3256,0.0016
+PLAIN-2530,Infectobesity: Adenovirus 36 and Childhood Obesity,0.33,0.9315,0.0013
+PLAIN-2,Do Cholesterol Statin Drugs Cause Breast Cancer?,0.36,0.7891,0.001
+PLAIN-2470,Is Milk Good for Our Bones?,0.37,0.9352,0.0003
+PLAIN-792,cadaverine,0.42,0.6448,0.0
+PLAIN-1690,National Academy of Sciences,0.41,0.0,0.0
+PLAIN-3281,Aluminum in Vaccines vs. Food,0.38,0.3239,0.0
+PLAIN-1398,IGF-1,0.39,1.0,0.0
+PLAIN-1710,neurocysticercosis,0.41,1.0,0.0
+PLAIN-872,chanterelle mushrooms,0.43,0.0,0.0
+PLAIN-2291,ultra-processed foods,0.38,0.3392,0.0
+PLAIN-430,Are krill oil supplements better than fish oil capsules?,0.39,0.6175,0.0
+PLAIN-2960,Pharmacists Versus Health Food Store Employees: Who Gives Better Advice?,0.33,0.3274,0.0
+PLAIN-3261,Update on Herbalife®,0.39,0.1291,0.0
+PLAIN-3074,How to Help Prevent Abdominal Aortic Aneurysms,0.36,1.0,0.0
+PLAIN-1028,dietary scoring,0.39,0.0,0.0
+PLAIN-721,BMAA,0.43,1.0,0.0
+PLAIN-3251,EPIC Study,0.41,0.2276,0.0
+PLAIN-1817,peanut butter,0.43,0.5033,0.0
+PLAIN-2261,trans fats,0.4,0.6906,0.0
+PLAIN-2830,Neurobiology of Artificial Sweeteners,0.37,0.6388,0.0
+PLAIN-2730,Anti-Angiogenesis: Cutting Off Tumor Supply Lines,0.37,0.4685,0.0
+PLAIN-1645,molasses,0.43,0.3026,0.0
+PLAIN-1516,Lindane,0.44,0.0,0.0
+PLAIN-1039,domoic acid,0.44,1.0,0.0
+PLAIN-1972,quinine,0.46,0.0,0.0
+PLAIN-2408,Zoloft,0.41,0.107,0.0
+PLAIN-2030,Rutin,0.42,0.3026,0.0
+PLAIN-1827,Peoria,0.44,0.0,0.0
+PLAIN-2209,taro,0.45,0.0,0.0
+PLAIN-3014,Sometimes the Enzyme Myth Is True,0.36,0.0,0.0
+PLAIN-2430,Preventing Brain Loss with B Vitamins?,0.36,0.6433,0.0
+PLAIN-2311,veal,0.43,0.0,0.0
+PLAIN-1088,ECMO,0.42,0.5531,0.0
+PLAIN-1897,polypropylene plastic,0.41,0.2641,0.0
+PLAIN-2930,Kiwifruit for Irritable Bowel Syndrome,0.36,0.3608,0.0
+PLAIN-1621,Mevacor,0.41,0.0,0.0
+PLAIN-623,Atkins diet,0.4,0.4,0.0
+PLAIN-2156,stevia,0.45,0.8412,0.0
+PLAIN-645,bagels,0.43,0.0,0.0
+PLAIN-1130,ergothioneine,0.4,1.0,0.0
+PLAIN-2092,sirtuins,0.44,0.6489,0.0
+PLAIN-3116,Dietary Guidelines: From Dairies to Berries,0.35,0.0,0.0
+PLAIN-1568,maple syrup,0.43,1.0,0.0
+PLAIN-3271,Saturated Fat & Cancer Progression,0.36,0.0,0.0
+PLAIN-1309,halibut,0.43,0.0,0.0
+PLAIN-2981,Cheese Mites and Maggots,0.37,0.4312,0.0
+PLAIN-966,cortisol,0.43,0.1413,0.0
+PLAIN-2500,The Saturated Fat Studies: Buttering Up the Public,0.37,0.0,0.0
+PLAIN-1141,Evidence-based medicine,0.39,0.2201,0.0
+PLAIN-238,How Chemically Contaminated Are We?,0.36,0.0,0.0
+PLAIN-1731,norovirus,0.38,0.7654,0.0
+PLAIN-2364,weight gain,0.39,0.0,0.0
+PLAIN-1275,goji berries,0.41,0.63,0.0
+PLAIN-660,beans,0.44,1.0,0.0
+PLAIN-1950,prunes,0.45,0.4035,0.0
+PLAIN-2321,veggie chicken,0.4,0.0,0.0
+PLAIN-3402,Antioxidant Content of 300 Foods,0.36,0.0694,0.0
+PLAIN-1579,mastitis,0.39,0.46,0.0
+PLAIN-850,cauliflower,0.44,0.8553,0.0
+PLAIN-2113,soil health,0.39,0.0,0.0
+PLAIN-2950,Unsafe at Any Feed,0.37,0.0,0.0
+PLAIN-1909,pork,0.45,0.9306,0.0
+PLAIN-520,Alli,0.41,0.0,0.0
+PLAIN-217,Plant-Based Diets for Psoriasis,0.36,0.0,0.0
+PLAIN-2230,thiamine,0.43,0.0,0.0
+PLAIN-2890,To Snack or Not to Snack?,0.38,0.1138,0.0
+PLAIN-175,Diet and Cellulite,0.37,0.4544,0.0
+PLAIN-2991,Cholesterol and Lower Back Pain,0.37,0.3869,0.0
+PLAIN-561,aneurysm,0.42,0.4537,0.0
+PLAIN-691,bioavailability,0.4,0.0,0.0
+PLAIN-196,Should We Avoid Titanium Dioxide?,0.37,0.6236,0.0
+PLAIN-2240,titanium dioxide,0.42,0.6422,0.0
+PLAIN-2167,subsidies,0.42,0.0,0.0
+PLAIN-2250,tongue worm,0.41,0.0,0.0
+PLAIN-3372,The Healthiest Sweetener,0.39,0.1804,0.0
+PLAIN-2375,whiting,0.44,0.0,0.0
+PLAIN-1837,pesticides,0.41,1.0,0.0
+PLAIN-838,carrageenan,0.43,0.7767,0.0
+PLAIN-1611,mesquite,0.44,0.0,0.0
+PLAIN-3231,Meat & Multiple Myeloma,0.38,0.0,0.0
+PLAIN-2860,BPA Plastic and Male Sexual Dysfunction,0.37,1.0,0.0
+PLAIN-1203,folic acid,0.42,0.359,0.0
+PLAIN-1679,myelopathy,0.4,1.0,0.0
+PLAIN-541,American Dental Association,0.41,0.1953,0.0
+PLAIN-2920,Human Neurotransmitters in Plants,0.36,0.0,0.0
+PLAIN-671,benzene,0.42,1.0,0.0
+PLAIN-1752,okra,0.43,0.0,0.0
+PLAIN-1008,deafness,0.42,0.0,0.0
+PLAIN-1983,rapamycin,0.43,1.0,0.0
+PLAIN-2440,More Than an Apple a Day: Combating Common Diseases,0.36,0.0,0.0
+PLAIN-1635,milk,0.43,0.7511,0.0
+PLAIN-1249,genetic manipulation,0.39,0.0,0.0
+PLAIN-3392,Healthiest Airplane Beverage,0.37,0.0,0.0
+PLAIN-2124,spearmint,0.45,0.5541,0.0
+PLAIN-2040,salmon,0.43,0.6902,0.0
+PLAIN-603,Arkansas,0.42,0.0,0.0
+PLAIN-1506,leucine,0.42,0.4085,0.0
+PLAIN-593,apnea,0.41,0.4693,0.0
+PLAIN-2880,The Answer to the Pritikin Puzzle,0.38,0.0,0.0
+PLAIN-227,Increasing Muscle Strength with Fenugreek,0.4,0.1389,0.0
+PLAIN-1794,Panama,0.44,1.0,0.0
+PLAIN-2840,Benefits of Fenugreek Seeds,0.4,0.0,0.0
+PLAIN-2850,More Antibiotics In White Meat or Dark Meat?,0.36,0.0,0.0
+PLAIN-3362,Kuna Indian Secret,0.42,0.4492,0.0
+PLAIN-3053,Dragon's Blood,0.41,0.9675,0.0
+PLAIN-1784,oxen meat,0.4,0.0,0.0
+PLAIN-3097,Amyloid and Apple Juice,0.38,0.477,0.0
+PLAIN-1887,poisonous plants,0.41,0.0,0.0
+PLAIN-1473,kohlrabi,0.44,1.0,0.0
+PLAIN-1496,leeks,0.42,0.0,0.0
+PLAIN-3063,Better Than Goji Berries,0.39,0.0,0.0
+PLAIN-2710,Artificial Food Colors and ADHD,0.37,0.6171,0.0
+PLAIN-2134,Splenda,0.44,0.1585,0.0
+PLAIN-2940,Dietary Treatment of Crohn's Disease,0.35,0.0,0.0
+PLAIN-1119,energy drinks,0.4,0.0,0.0
+PLAIN-1429,Iowa Women’s Health Study,0.32,0.0,0.0
+PLAIN-2900,Boosting Good Bacteria in the Colon Without Probiotics,0.36,0.0,0.0
+PLAIN-332,Can antioxidant-rich spices counteract the effects of a high-fat meal?,0.35,0.6131,0.0
+PLAIN-1847,philippines,0.44,0.2489,0.0
+PLAIN-395,What about pepper plus turmeric in V8 juice?,0.38,0.0,0.0
+PLAIN-1098,eggnog,0.44,0.5531,0.0
+PLAIN-771,bronchiolitis obliterans,0.39,1.0,0.0
+PLAIN-2560,Childhood Constipation and Cow’s Milk,0.28,0.9364,0.0
+PLAIN-583,antinutrients,0.4,0.6937,0.0
+PLAIN-143,Are Dental X-Rays Safe?,0.37,0.6093,0.0
+PLAIN-551,amnesia,0.41,0.6131,0.0
+PLAIN-902,chlorophyll,0.41,0.6367,0.0
+PLAIN-1805,Parkinson's disease,0.39,0.9337,0.0
+PLAIN-2081,shelf life,0.4,1.0,0.0
+PLAIN-1772,organotins,0.4,1.0,0.0
+PLAIN-68,What is Actually in Chicken Nuggets?,0.36,0.5111,0.0
+PLAIN-291,Stool Size and Breast Cancer Risk,0.36,0.359,0.0
+PLAIN-478,accidents,0.41,0.0,0.0
+PLAIN-913,cinnamon,0.42,0.8701,0.0
+PLAIN-2145,St. John's wort,0.38,0.0,0.0
+PLAIN-1962,pumpkin,0.44,0.0,0.0
+PLAIN-1700,Native Americans,0.42,0.0,0.0
+PLAIN-806,caloric restriction,0.4,1.0,0.0
+PLAIN-320,Breast Cancer and Diet,0.37,0.0,0.0
+PLAIN-2810,Apple Juice May Be Worse Than Sugar Water,0.37,0.0518,0.0
+PLAIN-441,Is apple cider vinegar good for you?,0.4,0.7777,0.0
+PLAIN-2396,Yale,0.42,0.0,0.0
+PLAIN-997,Czechoslovakia,0.43,0.0,0.0
+PLAIN-3472,How Doctors Responded to Being Named a Leading Killer,0.35,0.0,0.0
+PLAIN-1919,poultry workers,0.39,0.9364,0.0
+PLAIN-2343,vitamin K,0.4,0.0,0.0
+PLAIN-681,betel nuts,0.43,1.0,0.0
+PLAIN-1741,nuts,0.46,1.0,0.0
+PLAIN-751,BRCA genes,0.39,0.0,0.0
+PLAIN-1374,hormonal dysfunction,0.39,0.0,0.0
+PLAIN-782,Bush administration,0.41,0.0,0.0
+PLAIN-2760,Eating Healthy on a Budget,0.36,0.0,0.0
+PLAIN-407,Is annatto food coloring safe?,0.39,0.6388,0.0
+PLAIN-510,airport scanners,0.4,0.0,0.0
+PLAIN-358,Didn't another study show carnitine was good for the heart?,0.38,0.0,0.0
+PLAIN-1172,fenugreek,0.44,0.2201,0.0
+PLAIN-1214,Fosamax,0.42,0.7273,0.0
+PLAIN-1877,plant-based diet,0.37,0.0,0.0
+PLAIN-2301,uterine health,0.37,0.0,0.0
+PLAIN-207,Avoiding Cooked Meat Carcinogens,0.37,0.449,0.0
+PLAIN-1193,flax oil,0.42,0.0948,0.0
+PLAIN-3211,Overdosing on Greens,0.39,0.0,0.0
+PLAIN-1066,Dr. Walter Willett,0.38,0.0,0.0
+PLAIN-1762,oral intraepithelial neoplasia,0.38,0.539,0.0
+PLAIN-457,How can you believe in any scientific study?,0.37,0.0,0.0
+PLAIN-2271,Tufts,0.43,0.0,0.0
+PLAIN-1161,fava beans,0.43,0.0,0.0
+PLAIN-1236,galactosemia,0.4,0.3392,0.0
+PLAIN-2640,Chicken Salmonella Thanks to Meat Industry Lawsuit,0.36,0.6629,-0.003
+PLAIN-2197,sweeteners,0.42,0.7885,-0.0032
+PLAIN-3221,Dietary Theory of Alzheimer's,0.35,0.0569,-0.0032
+PLAIN-731,bone fractures,0.38,0.8669,-0.0032
+PLAIN-2720,Keeping Your Hands Warm With Citrus,0.38,0.3518,-0.0036
+PLAIN-3171,Convergence of Evidence,0.38,0.2121,-0.0048
+PLAIN-2910,Optimal Phytosterol Dose,0.37,0.2621,-0.0049
+PLAIN-741,BPH,0.43,0.8365,-0.005
+PLAIN-2790,Titanium Dioxide & Inflammatory Bowel Disease,0.36,0.7917,-0.0051
+PLAIN-531,alternative medicine,0.4,0.7105,-0.0058
+PLAIN-2870,Filled Full of Lead,0.39,0.0844,-0.0058
+PLAIN-2490,The Actual Benefit of Diet vs. Drugs,0.37,0.4521,-0.0058
+PLAIN-1721,NIH-AARP study,0.39,0.4521,-0.0059
+PLAIN-1109,endocrine disruptors,0.38,0.7503,-0.0066
+PLAIN-3462,Olive Oil and Artery Function,0.38,0.687,-0.0068
+PLAIN-701,black raspberries,0.42,0.5869,-0.0078
+PLAIN-3412,Plant vs. Cow Calcium,0.38,0.3667,-0.0086
+PLAIN-1857,phytic acid,0.44,0.6236,-0.0096
+PLAIN-3302,Fish Fog,0.4,0.2609,-0.0097
+PLAIN-2780,Do Fruit & Nut Bars Cause Weight Gain?,0.36,0.4276,-0.0101
+PLAIN-56,Foods for Glaucoma,0.37,0.6701,-0.0123
+PLAIN-2820,Preventing Strokes with Diet,0.37,0.1438,-0.0124
+PLAIN-1656,mouth cancer,0.38,0.2048,-0.0125
+PLAIN-2770,Flaxseeds & Breast Cancer Survival: Clinical Evidence,0.36,0.5601,-0.0139
+PLAIN-2071,serotonin,0.41,0.5153,-0.0152
+PLAIN-2386,worms,0.41,0.2941,-0.0153
+PLAIN-248,Treating an Enlarged Prostate With Diet,0.35,0.3382,-0.0176
+PLAIN-3452,Bowel Movement Frequency,0.39,0.5498,-0.0199
+PLAIN-1463,kidney beans,0.42,0.4139,-0.0262
+PLAIN-44,Who Should be Careful About Curcumin?,0.36,0.5035,-0.0283
+PLAIN-153,How Should I Take Probiotics?,0.36,0.8909,-0.0314
+PLAIN-2590,Do Vegetarians Get Enough Protein?,0.36,0.2603,-0.0327
+PLAIN-2540,Does Cholesterol Size Matter?,0.37,0.654,-0.0342
+PLAIN-123,How Citrus Might Help Keep Your Hands Warm,0.37,0.2928,-0.0389
+PLAIN-987,cumin,0.43,0.3434,-0.0393
+PLAIN-12,Exploiting Autophagy to Live Longer,0.37,0.1053,-0.0489
+PLAIN-3422,Vitamin Supplements Worth Taking,0.37,0.0371,-0.0507
+PLAIN-946,coma,0.42,0.3052,-0.0577
+PLAIN-1667,muscle health,0.38,0.7968,-0.0585
+PLAIN-3342,Is Coconut Milk Good For You?,0.39,0.4162,-0.0614
+PLAIN-1995,red tea,0.43,0.0,-0.0636
+PLAIN-2510,Coffee and Artery Function,0.37,0.6579,-0.0636
+PLAIN-1441,Japan,0.42,0.4131,-0.0636
+PLAIN-1288,grapes,0.44,0.5806,-0.0636
+PLAIN-892,chickpeas,0.42,0.8701,-0.0636
+PLAIN-2051,saturated fat,0.4,0.6754,-0.0663
+PLAIN-1363,Hiroshima,0.42,0.4734,-0.0686
+PLAIN-924,cocaine,0.44,0.2201,-0.0734
+PLAIN-2187,suppositories,0.41,0.235,-0.0784
+PLAIN-634,avocados,0.4,0.3437,-0.0812
+PLAIN-1183,Finland,0.43,0.1389,-0.0812
+PLAIN-934,coffee,0.43,0.5455,-0.0812
+PLAIN-3432,Healthy Chocolate Milkshakes,0.4,0.2743,-0.0892
+PLAIN-23,How to Reduce Exposure to Alkylphenols Through Your Diet,0.35,0.3996,-0.0996
+PLAIN-1320,Harvard Physicians’ Study II,0.33,0.4725,-0.1117
+PLAIN-1353,hernia,0.44,0.0,-0.1175
+PLAIN-1940,prolactin,0.39,0.6422,-0.13
+PLAIN-3131,Are Avocados Good for You?,0.39,0.4954,-0.1358
+PLAIN-383,What do you think of Dr. Jenkins' take on paleolithic diets?,0.4,0.1696,-0.1696
+PLAIN-2680,Counteracting the Effects of Dioxins Through Diet,0.35,0.2457,-0.1927
+PLAIN-2281,turnips,0.44,0.0,-0.2891
+PLAIN-1331,hearing,0.42,0.0,-0.3562

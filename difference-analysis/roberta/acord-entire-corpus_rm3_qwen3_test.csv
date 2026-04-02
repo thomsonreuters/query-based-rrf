@@ -1,0 +1,58 @@
+query_id,query_text,predicted_weight,ndcg_of_predicted_weight,difference_of_ndcg
+precedents_for_insurance_coverage_influencing_limitation_of_liability,precedents for insurance coverage influencing limitation of liability,0.02,0.3283,0.2129
+Third_Party_Beneficiary,Third Party Beneficiary,0.03,0.7192,0.1885
+fraud_and/or_gross_negligence_indemnity,fraud and/or gross negligence indemnity,0.03,0.2488,0.1861
+customer's_right_for_defective_products,customer's right for defective products,0.04,0.2189,0.1635
+Change_Of_Control,Change Of Control,0.03,0.2372,0.1581
+third_party_IP_infringement_exception_to_cap_on_liability,third party IP infringement exception to cap on liability,0.03,0.1553,0.1271
+two_parties_having_different_liability_caps_and/or_carveouts,two parties having different liability caps and/or carveouts,0.03,0.1902,0.125
+"liability_cap_clauses_that_exclude_third_party_IP_infringement_and_fraud,_gross_negligence_or_willful_misconduct","liability cap clauses that exclude third party IP infringement and fraud, gross negligence or willful misconduct",0.01,0.111,0.111
+Third_Party_claim_indemnity_limited_to_use_of_products_in_compliance_with_agreement,Third Party claim indemnity limited to use of products in compliance with agreement,0.02,0.4299,0.1105
+No-Solicit_of_Customers,No-Solicit of Customers,0.02,0.3482,0.1082
+"""as-is""_clause","""as-is"" clause",0.02,0.3112,0.1081
+confidentiality_exceptions_to_liability_cap,confidentiality exceptions to liability cap,0.03,0.3883,0.0824
+personal_or_bodily_injury_exception_to_liability_cap,personal or bodily injury exception to liability cap,0.02,0.0785,0.0785
+consequential_damages_waiver,consequential damages waiver,0.02,0.1209,0.0758
+buyer-favorable_waiver_of_indirect_damages_clauses,buyer-favorable waiver of indirect damages clauses,0.02,0.0729,0.0729
+mutual_liability_cap,mutual liability cap,0.03,0.0663,0.0663
+License_clause_covering_affiliates_of_licensor_and/or_licensee,License clause covering affiliates of licensor and/or licensee,0.03,0.0647,0.0647
+seller-favorable_cap_on_liability_clauses,seller-favorable cap on liability clauses,0.03,0.2347,0.0641
+unilateral_indemnification_clause,unilateral indemnification clause,0.03,0.0524,0.0524
+indemnification_that_covers_violation_of_law,indemnification that covers violation of law,0.03,0.428,0.0496
+mutual_indirect_damages_waiver,mutual indirect damages waiver,0.02,0.0452,0.0452
+indemnification_carveout_to_cap_on_liability,indemnification carveout to cap on liability,0.03,0.1712,0.0315
+Renewal_clause_that_requires_notice_to_Renew,Renewal clause that requires notice to Renew,0.03,0.1512,0.0274
+indirect_damage_waiver_is_subject_to_law,indirect damage waiver is subject to law,0.02,0.0243,0.0243
+Indemnity_of_broad-based_claims,Indemnity of broad-based claims,0.01,0.0496,0.0216
+Fix_fee_liability_cap,Fix fee liability cap,0.02,0.0215,0.0215
+unilateral_indirect_damages_waiver,unilateral indirect damages waiver,0.03,0.0879,0.0211
+Joint_IP_Ownership,Joint IP Ownership,0.03,0.2274,0.0202
+Minimum_Commitment,Minimum Commitment,0.02,0.087,0.0161
+No-Solicit_Of_Employees_not_bound_by_time_or_longer_than_12_months,No-Solicit Of Employees not bound by time or longer than 12 months,0.02,0.3018,0.0124
+seller-favorable_indemnification_clauses,seller-favorable indemnification clauses,0.03,0.1714,0.0117
+"fraud,_gross_negligence_or_willful_misconduct_carveout_to_indirect_damage_waiver","fraud, gross negligence or willful misconduct carveout to indirect damage waiver",0.01,0.2796,0.0108
+unilateral_liability_cap,unilateral liability cap,0.03,0.0297,0.0039
+IP_Ownership_Assignment_or_Transfer,IP Ownership Assignment or Transfer,0.02,0.0,0.0
+mutual_indemnification_provisions,mutual indemnification provisions,0.03,0.0,0.0
+disclaimer_of_punitive_damages,disclaimer of punitive damages,0.03,0.0,0.0
+IP_infringement_exception_to_indirect_damage_waiver,IP infringement exception to indirect damage waiver,0.02,0.0,0.0
+warranty_disclaimer_clause_that_includes_implied_warranties,warranty disclaimer clause that includes implied warranties,0.02,0.0,0.0
+indemnification_clauses_that_include_defending_claims,indemnification clauses that include defending claims,0.02,0.0,0.0
+third_party_IP_infringement_exception_to_indirect_damage_waiver,third party IP infringement exception to indirect damage waiver,0.02,0.0303,-0.0039
+indemnification_clause_that_allows_indemnifying_party_to_control_defenses,indemnification clause that allows indemnifying party to control defenses,0.02,0.0421,-0.0446
+"indirect_damage_waiver_clauses_that_exclude_third_party_IP_infringement_and_fraud,_gross_negligence_or_willful_misconduct","indirect damage waiver clauses that exclude third party IP infringement and fraud, gross negligence or willful misconduct",0.01,0.0889,-0.0486
+Cap_on_liability_equals_12_months_payment,Cap on liability equals 12 months payment,0.03,0.0,-0.05
+Liquidated_Damages,Liquidated Damages,0.03,0.17,-0.0553
+Revenue/Profit_Sharing,Revenue/Profit Sharing,0.03,0.0,-0.065
+indemnity_or_indemnification_clause,indemnity or indemnification clause,0.02,0.1037,-0.0704
+Rofr/Rofo/Rofn,Rofr/Rofo/Rofn,0.02,0.0,-0.0807
+warranty_disclaimer_that_does_not_specifically_waive_title_and_non-infringement_warranties,warranty disclaimer that does not specifically waive title and non-infringement warranties,0.03,0.1701,-0.0873
+Clause_with_multiple_governing_laws,Clause with multiple governing laws,0.04,0.2307,-0.0941
+Audit_Rights,Audit Rights,0.03,0.0,-0.0942
+buyer-favorable_warranty_disclaimer_clauses,buyer-favorable warranty disclaimer clauses,0.01,0.1625,-0.095
+Indemnification_of_first_party_claims,Indemnification of first party claims,0.03,0.2206,-0.1086
+IP_infringement_indemnity_that_covers_trademark_or_copyright,IP infringement indemnity that covers trademark or copyright,0.03,0.0914,-0.1167
+England_Governing_Law,England Governing Law,0.03,0.6426,-0.1262
+non-reliance_clause,non-reliance clause,0.02,0.3611,-0.1809
+indemnification_of_broad-based_third_party_claims,indemnification of broad-based third party claims,0.02,0.0,-0.2144
+Indemnified_party_includes_affiliates,Indemnified party includes affiliates,0.03,0.0,-0.3049
