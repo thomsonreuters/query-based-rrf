@@ -1,0 +1,33 @@
+[project]
+name = "query-based-rrf"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    # shared
+    "pandas",
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "pyyaml",
+    "python-dotenv",
+    # ridge
+    "matplotlib",
+    "seaborn",
+    "psutil",
+    # roberta
+    "torch>=2.0,<2.5",
+    "transformers>=5.0",
+    "accelerate>=1.1.0",
+    # llm
+    "requests",
+    "tqdm",
+    "langchain-core",
+    "langchain-openai",
+    "sentence-transformers",
+    "rank-bm25",
+    "labs-pl-common",
+    "boto3>=1.42.80",
+]
+
+[tool.uv.sources]
+labs-pl-common = { path = "../labs-pl_skills/packages/labs-pl-common" }
