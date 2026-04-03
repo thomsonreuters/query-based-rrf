@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -30,12 +31,13 @@ class LLMClient:
         return client
 
     @staticmethod
-    def from_bedrock(model_id, aws_profile, region="us-east-1"):
+    def from_bedrock(model_id, aws_profile, region="us-east-1", max_workers=50):
         client = LLMClient()
         client._backend = "bedrock"
         session = boto3.Session(profile_name=aws_profile)
         client._bedrock = session.client("bedrock-runtime", region_name=region)
         client._model_id = model_id
+        client._executor = ThreadPoolExecutor(max_workers=max_workers)
         return client
 
     async def invoke(self, system_message, user_message):
@@ -52,9 +54,10 @@ class LLMClient:
                     {"role": "user", "content": f"{system_message}\n\n{user_message}"},
                 ],
                 "max_tokens": 32,
+                "temperature": 0.1,
             }
-            response = await asyncio.get_event_loop().run_in_executor(
-                None,
+            response = await asyncio.get_running_loop().run_in_executor(
+                self._executor,
                 lambda: self._bedrock.invoke_model(
                     modelId=self._model_id,
                     body=json.dumps(request_body),
@@ -412,9 +415,9 @@ async def main():
         model_name = "qwen3-32b"
 
     DATASETS = [
-        # ("msmarco",             "dev"),
-        # ("nq",                  "dev"),
-        # ("acord-entire-corpus", "test"),
+        ("msmarco",             "dev"),
+        ("nq",                  "dev"),
+        ("acord-entire-corpus", "test"),
         ("nfcorpus",            "test"),
     ]
 
