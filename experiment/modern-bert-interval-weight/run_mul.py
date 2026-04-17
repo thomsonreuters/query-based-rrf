@@ -1,5 +1,9 @@
 import os
+import sys
 import multiprocessing as mp
+# Add repo root to path to import config
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
+from config import BASE_DATA_DIR
 
 # Global variable for the worker processes to keep track of their assigned GPU
 worker_gpu_id = None
@@ -66,7 +70,7 @@ def process_experiment(task_args):
         return False
 
 def run_pipeline(gpus):
-    base_data_dir = "../../../wrrf/dataset"
+    base_data_dir = BASE_DATA_DIR
     config_template = "config.yaml"
     
     datasets = ["acord-entire-corpus", "msmarco", "nfcorpus", "nq"]
