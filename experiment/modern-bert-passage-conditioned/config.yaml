@@ -1,0 +1,41 @@
+data:
+  eval_split: 0.1
+  test_file: 
+  train_file: 
+  train_split: 0.9
+  corpus_path:
+  sparse_trec_train:
+  dense_trec_train:
+  sparse_trec_test:
+  dense_trec_test:
+experiment:
+  description: Interval-Aware Weight Prediction Satisficing Loss Passage-Conditioned
+  name: 
+  tags:
+  - baseline
+  - modernbert
+  - satisficing loss
+  - passage conditioned
+model:
+  attention_dropout: 0.01
+  dropout: 0.01
+  max_length: 1024  # Increased to accommodate query + 2 passages
+  name: answerdotai/ModernBERT-large
+testing:
+  batch_size: 8   # Lowered to prevent OOM with max_length 512
+training:
+  early_stopping_patience: 10
+  eval_steps: 200
+  learning_rate: 2.0e-05
+  logging_steps: 200
+  lr_scheduler_type: linear
+  max_grad_norm: 0.5
+  num_train_epochs: 10
+  per_device_eval_batch_size: 8   # Lowered to prevent OOM
+  per_device_train_batch_size: 8  # Lowered to prevent OOM
+  save_steps: 200
+  save_total_limit: 2
+  seed: 42
+  warmup_steps: 500
+  weight_decay: 0.001
+  # gradient_accumulation_steps: 8
