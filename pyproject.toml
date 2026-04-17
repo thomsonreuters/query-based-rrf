@@ -30,4 +30,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-labs-pl-common = { path = "../../labs-pl_skills/packages/labs-pl-common" }
+labs-pl-common = { path = "../labs-pl_skills/packages/labs-pl-common" }

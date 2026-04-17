@@ -1,14 +1,10 @@
 import os
-import sys
-# Add repo root to path to import config
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
-from config import BASE_DATA_DIR
 from train import main as train_model
 from test import test_model
 
 def run_pipeline():
     # Base paths and parameters
-    base_data_dir = BASE_DATA_DIR
+    base_data_dir = "/extra/huaiyaom0/tr-intern/wrrf/dataset"
     output_dir = "predictions"
     config_template = "config.yaml"
     
