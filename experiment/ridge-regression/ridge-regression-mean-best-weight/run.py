@@ -1,10 +1,11 @@
 import os
+from config import BASE_DATA_DIR
 from train import main as train_model
 from test import test_model
 
 def run_pipeline():
     # Base paths and parameters
-    base_data_dir = "/extra/huaiyaom0/tr-intern/wrrf/dataset"
+    base_data_dir = BASE_DATA_DIR
     output_dir = "predictions"
     config_template = "config.yaml"
     

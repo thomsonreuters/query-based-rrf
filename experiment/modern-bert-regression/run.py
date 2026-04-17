@@ -1,11 +1,12 @@
 import os
+from config import BASE_DATA_DIR
 # We will import the adjusted main functions from your files
 from train import main as train_model
 from test import run_test as test_model
 
 def run_pipeline():
     # Base paths and parameters
-    base_data_dir = "/extra/huaiyaom0/tr-intern/wrrf/dataset"
+    base_data_dir = BASE_DATA_DIR
     config_template = "config.yaml"
     
     datasets = ["acord-entire-corpus", "msmarco", "nfcorpus", "nq"]
