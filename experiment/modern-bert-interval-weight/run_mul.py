@@ -1,5 +1,8 @@
 import os
+import sys
 import multiprocessing as mp
+# Add repo root to path to import config
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 from config import BASE_DATA_DIR
 
 # Global variable for the worker processes to keep track of their assigned GPU

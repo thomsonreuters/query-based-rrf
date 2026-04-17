@@ -1,4 +1,7 @@
 import os
+import sys
+# Add repo root to path to import config
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 from config import BASE_DATA_DIR
 # We will import the adjusted main functions from your files
 from train import main as train_model

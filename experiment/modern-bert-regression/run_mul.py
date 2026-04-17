@@ -1,5 +1,8 @@
 import os
+import sys
 import multiprocessing as mp
+# Add repo root to path to import config
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 from config import BASE_DATA_DIR
 from train import main as train_model
 from test import run_test as test_model
