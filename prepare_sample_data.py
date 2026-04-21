@@ -177,10 +177,15 @@ def _write_trec_files(
 
 
 def create_sample_data(
-    base_data_dir: str = "/Users/a6128162/Repos/query-based-rrf/data/input",
+    base_data_dir: str = None,
     num_samples: int = 100,
     seed: int = 42,
 ) -> None:
+    if base_data_dir is None:
+        import os
+        base_repo = os.getenv("QBR_REPO_PATH", "/Users/a6128162/Repos/query-based-rrf")
+        base_data_dir = os.path.join(base_repo, "data/input")
+
     random.seed(seed)
     base = Path(base_data_dir)
     out_base = base / "timing-samples"
@@ -201,9 +206,14 @@ def create_sample_data(
 
 if __name__ == "__main__":
     import argparse
+    import os
+
+    base_repo = os.getenv("QBR_REPO_PATH", "/Users/a6128162/Repos/query-based-rrf")
+    default_data_dir = os.path.join(base_repo, "data/input")
 
     parser = argparse.ArgumentParser(description="Build timing-samples dataset")
-    parser.add_argument("--data-dir", default="/Users/a6128162/Repos/query-based-rrf/data/input")
+    parser.add_argument("--data-dir", default=default_data_dir,
+                        help=f"Base data directory (default: $QBR_REPO_PATH/data/input or {default_data_dir})")
     parser.add_argument("--num-samples", type=int, default=100)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
