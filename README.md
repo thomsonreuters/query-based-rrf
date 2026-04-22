@@ -1,6 +1,28 @@
 
 
 
+## Configuration
+
+All scripts resolve data, results, and model paths through environment variables. Set these before running any script:
+
+| Variable | Used for | Default (cluster) |
+|---|---|---|
+| `BASE_DATA_DIR` | Dataset CSV files | `/extra/huaiyaom0/tr-intern/wrrf/dataset` |
+| `BASE_RESULTS_DIR` | Output `.trec` / metrics files | `/extra/huaiyaom0/tr-intern/wrrf/results` |
+| `BASE_EXPERIMENT_DIR` | Saved model checkpoints | `/extra/huaiyaom0/tr-intern/wrrf/experiment` |
+
+Copy `.env.example` and edit the paths for your environment:
+
+```bash
+cp .env.example .env
+# edit .env, then:
+export $(grep -v '^#' .env | xargs)
+```
+
+Or add them directly to your shell profile (`~/.zshrc` / `~/.bashrc`).
+
+---
+
 ## Data Collection
 
 ### Optimal Fusion Weights (Ground Truth)

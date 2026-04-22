@@ -2,6 +2,7 @@ import pandas as pd
 import ast
 import random
 import numpy as np
+import os
 
 def calculate_mean_best_weight(best_weights, interval_count):
     """Calculate mean best weight based on the rules provided"""
@@ -64,7 +65,8 @@ def calculate_overall_average(df):
     return avg
 
 def main():
-    input_csv = '/extra/huaiyaom0/tr-intern/wrrf/dataset/nq/mrr_runs/train/top200/results_train_bm25_vs_biencoder_best_weights_friendly_intervals.csv'
+    _base_data_dir = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
+    input_csv = f"{_base_data_dir}/nq/mrr_runs/train/top200/results_train_bm25_vs_biencoder_best_weights_friendly_intervals.csv"
     output_csv = input_csv.replace('.csv', '_with_mean_weight.csv')
     
     # Read the CSV file

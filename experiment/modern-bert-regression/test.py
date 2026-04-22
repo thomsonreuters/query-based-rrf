@@ -196,6 +196,7 @@ def run_test(model_path, test_file_path=None):
 
 
 if __name__ == "__main__":
-    model_path = "/extra/huaiyaom0/tr-intern/wrrf/experiment/roberta/roberta-experiment-1-mean-best-weight-1/experiments/msmarco-bm25_vs_biencoder_20260226_193002"
+    _base_experiment_dir = os.environ.get("BASE_EXPERIMENT_DIR", "/extra/huaiyaom0/tr-intern/wrrf/experiment")
+    model_path = f"{_base_experiment_dir}/roberta/roberta-experiment-1-mean-best-weight-1/experiments/msmarco-bm25_vs_biencoder_20260226_193002"
     if model_path:
         run_test(model_path)

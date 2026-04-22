@@ -1,5 +1,6 @@
 import csv
 import ast
+import os
 
 def process_weights(weights_str):
     """
@@ -103,7 +104,8 @@ def process_csv_file(input_file='input.csv', output_file='output.csv'):
                 writer.writerow(row)
 
 
-input_csv = "/extra/huaiyaom0/tr-intern/wrrf/dataset/nq/mrr_runs/train/top200/results_train_bm25_vs_biencoder_best_weights"
+_base_data_dir = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
+input_csv = f"{_base_data_dir}/nq/mrr_runs/train/top200/results_train_bm25_vs_biencoder_best_weights"
 output_csv = input_csv.replace(".csv", "_friendly_intervals.csv")
 
 # Process the file
