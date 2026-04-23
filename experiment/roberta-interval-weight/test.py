@@ -203,6 +203,17 @@ def run_test(model_path, test_file_path=None):
 
 
 if __name__ == "__main__":
-    model_path = ""
+    _base_experiment_dir = os.environ.get("BASE_EXPERIMENT_DIR", "/extra/huaiyaom0/tr-intern/wrrf/experiment")
+    _base_data_dir = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
+
+    dataset = "acord-entire-corpus"  # e.g. acord-entire-corpus, msmarco, nfcorpus, nq
+    combo = "bm25_vs_biencoder"      # e.g. bm25_vs_biencoder, bm25_vs_qwen3, rm3_vs_biencoder, rm3_vs_qwen3
+    split = "test"                   # test for acord/nfcorpus, dev for msmarco/nq
+    metric = "ndcg" if dataset in ["acord-entire-corpus", "nfcorpus"] else "mrr"
+    timestamp = ""                   # fill in from the experiments/ folder name
+
+    model_path = f"{_base_experiment_dir}/roberta-interval-weight/experiments/{dataset}-{combo}_{timestamp}"
+    test_file_path = f"{_base_data_dir}/{dataset}/{metric}_runs/{split}/top200/results_{split}_{combo}_best_weights_final_mean_with_text.csv"
+
     if model_path:
-        run_test(model_path)
+        run_test(model_path, test_file_path=test_file_path)

@@ -388,8 +388,8 @@ async def run_dynamic_alpha(
 # ---------------------------------------------------------------------------
 
 async def main():
-    BASE_DATA_DIR = "/Users/a6128162/Repos/query-based-rrf/data/input"
-    OUTPUT_DIR = "/Users/a6128162/Repos/query-based-rrf/data/output/dynamic-alpha-tuning-qwen3_32"
+    BASE_DATA_DIR = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
+    OUTPUT_DIR = os.environ.get("BASE_RESULTS_DIR", "/extra/huaiyaom0/tr-intern/wrrf/results") + "/dynamic-alpha-tuning-qwen3_32"
 
     BACKEND = "bedrock"  # "proxy" or "bedrock"
 

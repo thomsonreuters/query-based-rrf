@@ -179,12 +179,13 @@ def main():
             SPLIT = "test" if DATASET in ["acord-entire-corpus", "nfcorpus"] else "dev"
             metric = "ndcg" if DATASET in ["acord-entire-corpus", "nfcorpus"] else "mrr"
 
-            BASE_TRAIN_DIR = f"../../dataset/{DATASET}/qwen3-embeddings/train/top200"
+            _base_data_dir = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
+            BASE_TRAIN_DIR = f"{_base_data_dir}/{DATASET}/qwen3-embeddings/train/top200"
             TRAIN_EMBEDDINGS_PATH = os.path.join(BASE_TRAIN_DIR, "train_query_embeddings.pt")
             TRAIN_METADATA_PATH = os.path.join(BASE_TRAIN_DIR, f"train_{COMBINATION}_query_metadata.pkl")
-            TRAIN_CSV_PATH = f"../../dataset/{DATASET}/{metric}_runs/train/top200/results_train_{COMBINATION}_best_weights_final_mean_with_text.csv"
-            
-            TEST_CSV_PATH = f"../../dataset/{DATASET}/{metric}_runs/{SPLIT}/top200/results_{SPLIT}_{COMBINATION}_best_weights_final_mean_with_text.csv"
+            TRAIN_CSV_PATH = f"{_base_data_dir}/{DATASET}/{metric}_runs/train/top200/results_train_{COMBINATION}_best_weights_final_mean_with_text.csv"
+
+            TEST_CSV_PATH = f"{_base_data_dir}/{DATASET}/{metric}_runs/{SPLIT}/top200/results_{SPLIT}_{COMBINATION}_best_weights_final_mean_with_text.csv"
             OUTPUT_PATH = f"predictions/{DATASET}_{SPLIT}_{COMBINATION}_predictions.csv"
 
             os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
