@@ -15,7 +15,7 @@ dependencies = [
     "seaborn",
     "psutil",
     # roberta
-    "torch>=2.0,<2.5",
+    "torch~=2.7.0",
     "transformers>=5.0",
     "accelerate>=1.1.0",
     # llm

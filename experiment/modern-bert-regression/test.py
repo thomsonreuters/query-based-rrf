@@ -197,6 +197,8 @@ def run_test(model_path, test_file_path=None):
 
 if __name__ == "__main__":
     _base_experiment_dir = os.environ.get("BASE_EXPERIMENT_DIR", "/extra/huaiyaom0/tr-intern/wrrf/experiment")
-    model_path = f"{_base_experiment_dir}/roberta/roberta-experiment-1-mean-best-weight-1/experiments/msmarco-bm25_vs_biencoder_20260226_193002"
+    _base_data_dir = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
+    model_path = f"{_base_experiment_dir}/modern-bert-regression/modern-bert-regression-experiments/acord-entire-corpus-bm25_vs_biencoder_20260319_174310"
+    test_file_path = f"{_base_data_dir}/acord-entire-corpus/ndcg_runs/test/top200/results_test_bm25_vs_biencoder_best_weights_final_mean_with_text.csv"
     if model_path:
-        run_test(model_path)
+        run_test(model_path, test_file_path=test_file_path)
