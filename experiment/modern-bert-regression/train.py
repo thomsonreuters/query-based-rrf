@@ -100,7 +100,16 @@ class RegressionDataset(Dataset):
     
     def __len__(self):
         return len(self.data)
-    
+
+    def get_input_text(self, idx):
+        return str(self.data.iloc[idx]['query_text'])
+
+    def get_label(self, idx):
+        try:
+            return float(self.data.iloc[idx]['mean_best_weight'])
+        except (ValueError, TypeError):
+            return float('nan')
+
     def __getitem__(self, idx):
         text = str(self.data.iloc[idx]['query_text'])
         label = float(self.data.iloc[idx]['mean_best_weight'])

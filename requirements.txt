@@ -15,3 +15,4 @@ pyyaml==6.0.2
 psutil==7.0.0
 torch==2.7.0
 transformers==4.52.3
+flash-attn>=2.5.0  # optional at runtime; enable via testing.use_flash_attention_2 in config.yaml

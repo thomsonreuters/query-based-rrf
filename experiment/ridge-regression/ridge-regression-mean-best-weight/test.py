@@ -3,8 +3,11 @@ import numpy as np
 import pickle
 import json
 import os
+import time
 from train import compute_metrics, Config
 import glob
+
+WARMUP_ITERS = 5
 
 def test_model(model_dir, test_file, output_base_dir):
     """Test the trained model on a test file and save csv results"""
@@ -29,19 +32,30 @@ def test_model(model_dir, test_file, output_base_dir):
     
     # Extract features for ALL entries
     X_test_text = test_df['query_text'].astype(str)
-    
-    # Transform ALL test data using trained vectorizer
-    print("Transforming test data...")
-    X_test_tfidf = vectorizer.transform(X_test_text)
-    print(f"TF-IDF Test Matrix Shape: {X_test_tfidf.shape}")
-    
-    # Make predictions for ALL entries
-    print("Making predictions...")
-    y_test_pred = model.predict(X_test_tfidf)
-    
+
+    # Per-query (batch size 1) inference: time vectorize → predict → scalar
+    # This matches real serving, where a single query's TF-IDF transform and
+    # Ridge.predict are the per-request cost.
+    print("Running per-query inference...")
+    n = len(X_test_text)
+    y_test_pred = np.zeros(n, dtype=np.float64)
+    latencies_ms = np.zeros(n, dtype=np.float64)
+
+    # Warmup (not timed)
+    if n > 0:
+        warm_text = X_test_text.iloc[0]
+        for _ in range(WARMUP_ITERS):
+            _ = float(model.predict(vectorizer.transform([warm_text]))[0])
+
+    for i, text in enumerate(X_test_text):
+        t0 = time.perf_counter()
+        X = vectorizer.transform([text])
+        pred = float(model.predict(X)[0])
+        latencies_ms[i] = (time.perf_counter() - t0) * 1000.0
+        y_test_pred[i] = pred
+
     # Clip predictions to valid range [0, 1] and round to 2 decimal places
-    y_test_pred = np.clip(y_test_pred, 0.00, 1.0)
-    y_test_pred = np.round(y_test_pred, 2)
+    y_test_pred = np.round(np.clip(y_test_pred, 0.00, 1.0), 2)
     
     # Filter for evaluation metrics (only entries with valid mean_best_weight)
     valid_mask = test_df['mean_best_weight'].notna()
@@ -115,6 +129,7 @@ def test_model(model_dir, test_file, output_base_dir):
         'query_text': X_test_text,
         'actual': test_df['mean_best_weight'],
         'predicted': y_test_pred,
+        'latency_ms': latencies_ms,
         'absolute_error': np.round(np.where(valid_mask, np.abs(test_df['mean_best_weight'] - y_test_pred), np.nan), 2)
     })
     
