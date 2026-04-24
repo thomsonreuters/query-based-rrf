@@ -19,19 +19,22 @@ def load_model(model_path, config):
     if os.path.exists(os.path.join(model_path, 'best_model')):
         model_path = os.path.join(model_path, 'best_model')
 
-    from transformers import RobertaTokenizer
-    tokenizer = RobertaTokenizer.from_pretrained(model_path)
-    
+    from transformers import AutoTokenizer
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+
     model = RobertaRegression(
         model_name=config.get('model.name', 'roberta-base'),
         dropout=config.get('model.dropout', 0.1)
     )
-    
+
     model.load_state_dict(torch.load(
-        os.path.join(model_path, 'pytorch_model.bin'), 
+        os.path.join(model_path, 'pytorch_model.bin'),
         map_location='cuda' if torch.cuda.is_available() else 'cpu'
     ))
-    
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model = model.to(device)
+
     return model, tokenizer
 
 WARMUP_ITERS = 5

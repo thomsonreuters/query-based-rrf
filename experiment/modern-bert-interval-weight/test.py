@@ -39,8 +39,10 @@ def load_model(model_path, config):
         map_location='cuda' if torch.cuda.is_available() else 'cpu'
     ))
 
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model = model.to(device)
     if use_fa2:
-        model = model.to('cuda').to(torch.bfloat16)
+        model = model.to(torch.bfloat16)
 
     return model, tokenizer
 
