@@ -18,6 +18,9 @@ dependencies = [
     "torch~=2.7.0",
     "transformers>=5.0",
     "accelerate>=1.1.0",
+    # Flash Attention 2 — gated by testing.use_flash_attention_2 in config.yaml.
+    # Linux + CUDA only; install with --no-build-isolation if building from source.
+    "flash-attn>=2.5.0",
     # llm
     "requests",
     "tqdm",

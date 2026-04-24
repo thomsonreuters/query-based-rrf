@@ -8,6 +8,7 @@ import yaml
 import argparse
 import os
 import json
+import time
 
 
 # TO THIS:
@@ -22,53 +23,77 @@ def load_model(model_path, config):
 
     # Use Auto classes instead of Roberta specific ones
     tokenizer = AutoTokenizer.from_pretrained(model_path)
-    
-    # Load the model directly from the saved directory
-    model = AutoModelForSequenceClassification.from_pretrained(model_path)
-    
-    # Move model to GPU if available
+
+    # Flash Attention 2 requires CUDA + bf16/fp16 weights.
+    use_fa2 = config.get('testing.use_flash_attention_2', False)
+    if use_fa2 and not torch.cuda.is_available():
+        raise RuntimeError("testing.use_flash_attention_2=true but CUDA is not available")
+    load_kwargs = {}
+    if use_fa2:
+        load_kwargs['attn_implementation'] = 'flash_attention_2'
+        load_kwargs['torch_dtype'] = torch.bfloat16
+
+    model = AutoModelForSequenceClassification.from_pretrained(model_path, **load_kwargs)
+
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = model.to(device)
-    
+
     return model, tokenizer
 
 
-def test_model(model, dataset, batch_size=128):
-    """Test model and return metrics and predictions"""
+WARMUP_ITERS = 5
+
+
+def test_model(model, dataset, tokenizer, config):
+    """Per-query (batch size 1) inference. Times tokenize → forward → scalar-on-host."""
     model.eval()
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-    
-    predictions, labels = [], []
-    
-    # Get the device the model is currently on
     device = next(model.parameters()).device
-    
-    with torch.no_grad():
-        for batch in dataloader:
-            # FIX: Move batch data to the GPU!
-            batch = {k: v.to(device) if torch.is_tensor(v) else v for k, v in batch.items()}
-            
-            # FIX: Use keyword arguments
-            outputs = model(
-                input_ids=batch['input_ids'], 
-                attention_mask=batch['attention_mask']
-            )
-            
-            # FIX: Access logits directly
-            logits = outputs.logits 
-            
-            predictions.extend([round(x, 2) for x in logits.squeeze().cpu().numpy().tolist()])
-            labels.extend(batch['labels'].cpu().numpy().tolist())
-    
-    predictions = np.array(predictions)
-    labels = np.array(labels)
-    
-    # Filter out entries where labels are NaN or missing for metric calculation
+    max_length = config.get('model.max_length', 64)
+
+    if device.type == 'cuda':
+        model = torch.compile(model)
+
+    n = len(dataset)
+    predictions = np.zeros(n, dtype=np.float64)
+    labels = np.zeros(n, dtype=np.float64)
+    latencies_ms = np.zeros(n, dtype=np.float64)
+
+    def _run_one(text):
+        enc = tokenizer(
+            text, truncation=True, padding='max_length',
+            max_length=max_length, return_tensors='pt'
+        )
+        input_ids = enc['input_ids'].to(device, non_blocking=True)
+        attention_mask = enc['attention_mask'].to(device, non_blocking=True)
+        outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+        logits = outputs.logits if hasattr(outputs, 'logits') else outputs['logits']
+        return float(logits.squeeze().float().cpu().item())
+
+    with torch.inference_mode():
+        if n > 0:
+            warm_text = dataset.get_input_text(0)
+            for _ in range(WARMUP_ITERS):
+                _run_one(warm_text)
+            if device.type == 'cuda':
+                torch.cuda.synchronize()
+
+        for i in range(n):
+            text = dataset.get_input_text(i)
+            labels[i] = dataset.get_label(i)
+
+            if device.type == 'cuda':
+                torch.cuda.synchronize()
+            t0 = time.perf_counter()
+            pred = _run_one(text)
+            if device.type == 'cuda':
+                torch.cuda.synchronize()
+            latencies_ms[i] = (time.perf_counter() - t0) * 1000.0
+            predictions[i] = round(pred, 2)
+
     valid_mask = ~np.isnan(labels)
     valid_predictions = predictions[valid_mask]
     valid_labels = labels[valid_mask]
-    
-    # Only calculate metrics if we have valid labels
+
     if len(valid_labels) > 0:
         metrics = {
             'MAE': mean_absolute_error(valid_labels, valid_predictions),
@@ -77,17 +102,12 @@ def test_model(model, dataset, batch_size=128):
             'R2': r2_score(valid_labels, valid_predictions)
         }
     else:
-        metrics = {
-            'MAE': None,
-            'MSE': None,
-            'RMSE': None,
-            'R2': None
-        }
-    
-    return metrics, predictions, labels
+        metrics = {'MAE': None, 'MSE': None, 'RMSE': None, 'R2': None}
+
+    return metrics, predictions, labels, latencies_ms
 
 # UPDATE: Added config as a parameter to access experiment.name
-def save_results(model_path, metrics, predictions, labels, dataset, test_file_path, config):
+def save_results(model_path, metrics, predictions, labels, latencies_ms, dataset, test_file_path, config):
     """Save metrics and predictions to files"""
     # Load existing results.json
     results_file = os.path.join(model_path, 'results.json')
@@ -124,7 +144,8 @@ def save_results(model_path, metrics, predictions, labels, dataset, test_file_pa
     # Save predictions with all original columns
     results_df = dataset.data.copy()
     results_df['predicted'] = predictions
-    
+    results_df['latency_ms'] = latencies_ms
+
     # Only calculate error for entries with valid labels
     valid_mask = ~np.isnan(labels)
     results_df['error'] = np.nan
@@ -174,11 +195,11 @@ def run_test(model_path, test_file_path=None):
     )
     
     # Test
-    print("Testing...")
-    metrics, predictions, labels = test_model(model, test_dataset, config.get('testing.batch_size', 128))
-    
+    print("Testing (batch size 1, per-query timing)...")
+    metrics, predictions, labels, latencies_ms = test_model(model, test_dataset, tokenizer, config)
+
     # UPDATE: Pass the config object down to save_results
-    save_results(model_path, metrics, predictions, labels, test_dataset, test_file_path, config)
+    save_results(model_path, metrics, predictions, labels, latencies_ms, test_dataset, test_file_path, config)
     
     # Print results
     print("\nResults:")

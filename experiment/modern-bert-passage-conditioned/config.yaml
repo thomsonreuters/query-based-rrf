@@ -23,6 +23,7 @@ model:
   name: answerdotai/ModernBERT-large
 testing:
   batch_size: 8   # Lowered to prevent OOM with max_length 512
+  use_flash_attention_2: false  # requires CUDA GPU + flash-attn package; loads model in bf16
 training:
   early_stopping_patience: 10
   eval_steps: 200
