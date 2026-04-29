@@ -95,7 +95,7 @@ def test_model(model, dataset, tokenizer, config):
             pred = _run_one(text)
             if device.type == 'cuda':
                 torch.cuda.synchronize()
-            latencies_ms[i] = (time.perf_counter() - t0)
+            latencies_ms[i] = (time.perf_counter() - t0) * 1000
             predictions[i] = round(pred, 2)
     end = time.time()
     print("=======> end-start", end - start)
@@ -247,4 +247,4 @@ if __name__ == "__main__":
             model_path = matches[-1]
             test_file_path = f"{_base_data_dir}/{dataset}/{metric}_runs/{split}/top200/results_{split}_{combo}_best_weights_final_mean_with_text.csv"
             latencies_ms = run_test(model_path, test_file_path=test_file_path)
-            print(f"=======> Total Latencies for dataset-combo {dataset}-{combo}, split {split}, metric {metric}", sum(latencies_ms), "seconds")
+            print(f"=======> Total Latencies for dataset-combo {dataset}-{combo}, split {split}, metric {metric} {sum(latencies_ms):.4f} seconds")
