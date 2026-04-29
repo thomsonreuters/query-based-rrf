@@ -14,6 +14,9 @@ import time
 # Updated to import ModernBertRegression
 from train import Config, RegressionDataset, ModernBertRegression
 
+# Enable TF32 on Ampere+ GPUs for fp32 matmul (free ~10–20% on the fp32 path).
+torch.set_float32_matmul_precision('high')
+
 def load_model(model_path, config):
     """Load model and tokenizer"""
     # Check if it's experiment directory
@@ -41,7 +44,9 @@ def load_model(model_path, config):
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = model.to(device)
-    if use_fa2:
+    # Cast to bf16 on CUDA — memory-bandwidth-bound at batch=1, ~1.5–2× speedup
+    # via Tensor Cores on Ampere+. Required when FA2 is enabled.
+    if device == 'cuda':
         model = model.to(torch.bfloat16)
 
     return model, tokenizer
@@ -55,7 +60,10 @@ def test_model(model, dataset, tokenizer, config):
     device = next(model.parameters()).device
     max_length = config.get('model.max_length', 64)
 
-    if device.type == 'cuda':
+    # FA2's HF wrapper calls Tensor.item() inside forward, which torch.compile
+    # cannot trace across — graph-breaks every call and re-traces. Skip compile
+    # when FA2 is on; SDPA + compile is the recommended combo anyway.
+    if device.type == 'cuda' and not config.get('testing.use_flash_attention_2', False):
         model = torch.compile(model)
 
     n = len(dataset)

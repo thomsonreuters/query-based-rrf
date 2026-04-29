@@ -15,6 +15,9 @@ import time
 from train import Config, RegressionDataset
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
+# Enable TF32 on Ampere+ GPUs for fp32 matmul (free ~10–20% on the fp32 path).
+torch.set_float32_matmul_precision('high')
+
 def load_model(model_path, config):
     """Load model and tokenizer"""
     # Check if it's experiment directory
@@ -24,14 +27,16 @@ def load_model(model_path, config):
     # Use Auto classes instead of Roberta specific ones
     tokenizer = AutoTokenizer.from_pretrained(model_path)
 
-    # Flash Attention 2 requires CUDA + bf16/fp16 weights.
+    # Load in bf16 on CUDA — memory-bandwidth-bound at batch=1, ~1.5–2× speedup
+    # via Tensor Cores on Ampere+. Required when FA2 is enabled.
     use_fa2 = config.get('testing.use_flash_attention_2', False)
     if use_fa2 and not torch.cuda.is_available():
         raise RuntimeError("testing.use_flash_attention_2=true but CUDA is not available")
     load_kwargs = {}
+    if torch.cuda.is_available():
+        load_kwargs['torch_dtype'] = torch.bfloat16
     if use_fa2:
         load_kwargs['attn_implementation'] = 'flash_attention_2'
-        load_kwargs['torch_dtype'] = torch.bfloat16
 
     model = AutoModelForSequenceClassification.from_pretrained(model_path, **load_kwargs)
 
@@ -50,7 +55,10 @@ def test_model(model, dataset, tokenizer, config):
     device = next(model.parameters()).device
     max_length = config.get('model.max_length', 64)
 
-    if device.type == 'cuda':
+    # FA2's HF wrapper calls Tensor.item() inside forward, which torch.compile
+    # cannot trace across — graph-breaks every call and re-traces. Skip compile
+    # when FA2 is on; SDPA + compile is the recommended combo anyway.
+    if device.type == 'cuda' and not config.get('testing.use_flash_attention_2', False):
         model = torch.compile(model)
 
     n = len(dataset)

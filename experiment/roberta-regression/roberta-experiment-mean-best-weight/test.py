@@ -13,6 +13,9 @@ import time
 # Import reusable classes and functions from train.py
 from train import Config, RegressionDataset, RobertaRegression
 
+# Enable TF32 on Ampere+ GPUs for fp32 matmul (free ~10–20% on the fp32 path).
+torch.set_float32_matmul_precision('high')
+
 def load_model(model_path, config):
     """Load model and tokenizer"""
     # Check if it's experiment directory
@@ -34,6 +37,10 @@ def load_model(model_path, config):
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = model.to(device)
+    # Cast to bf16 on CUDA — memory-bandwidth-bound at batch=1, ~1.5–2× speedup
+    # via Tensor Cores on Ampere+ (A10G/L4/L40S/A100/H100; not T4).
+    if device == 'cuda':
+        model = model.to(torch.bfloat16)
 
     return model, tokenizer
 

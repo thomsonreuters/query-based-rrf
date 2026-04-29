@@ -11,6 +11,10 @@ import re
 
 WARMUP_ITERS = 3
 
+# Enable TF32 on Ampere+ GPUs for any fp32 matmul (consistent with the encoder paths;
+# negligible effect here since most compute is bf16/4-bit, but kept for hygiene).
+torch.set_float32_matmul_precision('high')
+
 # --- Classes and Methods ---
 
 def retrieve_top_k_qwen_batch(query_texts, model, corpus_embeddings, metadata_df, k=10):
