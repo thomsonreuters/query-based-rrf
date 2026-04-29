@@ -76,7 +76,7 @@ def test_model(model, dataset, tokenizer, config):
         outputs = model(input_ids=input_ids, attention_mask=attention_mask)
         logits = outputs.logits if hasattr(outputs, 'logits') else outputs['logits']
         return float(logits.squeeze().float().cpu().item())
-
+    start = time.time()
     with torch.inference_mode():
         if n > 0:
             warm_text = dataset.get_input_text(0)
@@ -95,9 +95,10 @@ def test_model(model, dataset, tokenizer, config):
             pred = _run_one(text)
             if device.type == 'cuda':
                 torch.cuda.synchronize()
-            latencies_ms[i] = (time.perf_counter() - t0) * 1000.0
+            latencies_ms[i] = (time.perf_counter() - t0)
             predictions[i] = round(pred, 2)
-
+    end = time.time()
+    print("=======> end-start", end - start)
     valid_mask = ~np.isnan(labels)
     valid_predictions = predictions[valid_mask]
     valid_labels = labels[valid_mask]
@@ -201,7 +202,7 @@ def run_test(model_path, test_file_path=None):
         config.get('model.max_length', 64),
         split=split
     )
-    
+    print("## ", len(test_dataset), "queries")
     # Test
     print("Testing (batch size 1, per-query timing)...")
     metrics, predictions, labels, latencies_ms = test_model(model, test_dataset, tokenizer, config)
@@ -222,20 +223,28 @@ def run_test(model_path, test_file_path=None):
         actual = labels[i]
         predicted = predictions[i]
         print(f"'{text[:50]}...' -> Actual: {actual:.2f}, Predicted: {predicted:.2f}")
+    return latencies_ms
 
 
 if __name__ == "__main__":
+    import glob
+
     _base_experiment_dir = os.environ.get("BASE_EXPERIMENT_DIR", "/extra/huaiyaom0/tr-intern/wrrf/experiment")
     _base_data_dir = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
+    experiments_dir = f"{_base_experiment_dir}/modern-bert-regression/experiments"
 
-    dataset = "acord-entire-corpus"  # e.g. acord-entire-corpus, msmarco, nfcorpus, nq
-    combo = "bm25_vs_biencoder"      # e.g. bm25_vs_biencoder, bm25_vs_qwen3, rm3_vs_biencoder, rm3_vs_qwen3
-    split = "test"                   # test for acord/nfcorpus, dev for msmarco/nq
-    metric = "ndcg" if dataset in ["acord-entire-corpus", "nfcorpus"] else "mrr"
-    timestamp = "20260319_174310"    # match the experiment folder name
+    datasets = ["acord-entire-corpus", "msmarco", "nfcorpus", "nq"]
+    combos = ["bm25_vs_biencoder", "bm25_vs_qwen3", "rm3_vs_biencoder", "rm3_vs_qwen3"]
 
-    model_path = f"{_base_experiment_dir}/modern-bert-regression/modern-bert-regression-experiments/{dataset}-{combo}_{timestamp}"
-    test_file_path = f"{_base_data_dir}/{dataset}/{metric}_runs/{split}/top200/results_{split}_{combo}_best_weights_final_mean_with_text.csv"
-
-    if model_path:
-        run_test(model_path, test_file_path=test_file_path)
+    for dataset in datasets:
+        split = "test" if dataset in ["acord-entire-corpus", "nfcorpus"] else "dev"
+        metric = "ndcg" if dataset in ["acord-entire-corpus", "nfcorpus"] else "mrr"
+        for combo in combos:
+            matches = sorted(glob.glob(f"{experiments_dir}/{dataset}-{combo}_*"))
+            if not matches:
+                print(f"Skipping {dataset}/{combo}: no experiment folder found.")
+                continue
+            model_path = matches[-1]
+            test_file_path = f"{_base_data_dir}/{dataset}/{metric}_runs/{split}/top200/results_{split}_{combo}_best_weights_final_mean_with_text.csv"
+            latencies_ms = run_test(model_path, test_file_path=test_file_path)
+            print(f"=======> Total Latencies for dataset-combo {dataset}-{combo}, split {split}, metric {metric}", sum(latencies_ms), "seconds")
