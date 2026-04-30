@@ -209,6 +209,7 @@ def run_test(model_path, test_file_path=None):
         sparse_trec=config.get('data.sparse_trec_test'),
         dense_trec=config.get('data.dense_trec_test')
     )
+    print("## ", len(test_dataset), "queries")
     
     print("Testing (batch size 1, per-query timing)...")
     metrics, predictions, labels, latencies_ms = test_model(model, test_dataset, tokenizer, config)
@@ -226,20 +227,28 @@ def run_test(model_path, test_file_path=None):
         actual = labels[i]
         predicted = predictions[i]
         print(f"'{text[:50]}...' -> Actual Interval: {actual}, Predicted: {predicted:.2f}")
+    return latencies_ms
 
 
 if __name__ == "__main__":
+    import glob
+
     _base_experiment_dir = os.environ.get("BASE_EXPERIMENT_DIR", "/extra/huaiyaom0/tr-intern/wrrf/experiment")
     _base_data_dir = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
+    experiments_dir = f"{_base_experiment_dir}/modern-bert-passage-conditioned/experiments"
 
-    dataset = "acord-entire-corpus"  # e.g. acord-entire-corpus, msmarco, nfcorpus, nq
-    combo = "bm25_vs_biencoder"      # e.g. bm25_vs_biencoder, bm25_vs_qwen3, rm3_vs_biencoder, rm3_vs_qwen3
-    split = "test"                   # test for acord/nfcorpus, dev for msmarco/nq
-    metric = "ndcg" if dataset in ["acord-entire-corpus", "nfcorpus"] else "mrr"
-    timestamp = ""                   # fill in from the experiments/ folder name
+    datasets = ["acord-entire-corpus", "msmarco", "nfcorpus", "nq"]
+    combos = ["bm25_vs_biencoder", "bm25_vs_qwen3", "rm3_vs_biencoder", "rm3_vs_qwen3"]
 
-    model_path = f"{_base_experiment_dir}/modern-bert-passage-conditioned/experiments/{dataset}-{combo}_{timestamp}"
-    test_file_path = f"{_base_data_dir}/{dataset}/{metric}_runs/{split}/top200/results_{split}_{combo}_best_weights_final_mean_with_text.csv"
-
-    if model_path:
-        run_test(model_path, test_file_path=test_file_path)
+    for dataset in datasets:
+        split = "test" if dataset in ["acord-entire-corpus", "nfcorpus"] else "dev"
+        metric = "ndcg" if dataset in ["acord-entire-corpus", "nfcorpus"] else "mrr"
+        for combo in combos:
+            matches = sorted(glob.glob(f"{experiments_dir}/{dataset}-{combo}_*"))
+            if not matches:
+                print(f"Skipping {dataset}/{combo}: no experiment folder found.")
+                continue
+            model_path = matches[-1]
+            test_file_path = f"{_base_data_dir}/{dataset}/{metric}_runs/{split}/top200/results_{split}_{combo}_best_weights_final_mean_with_text.csv"
+            latencies_ms = run_test(model_path, test_file_path=test_file_path)
+            print(f"=======> Total Latencies for dataset-combo {dataset}-{combo}, split {split}, metric {metric} {sum(latencies_ms):.4f} miliseconds")
