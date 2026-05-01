@@ -89,6 +89,31 @@ class ExperimentTracker:
         with open(os.path.join(self.exp_dir, 'results.json'), 'w') as f:
             json.dump(self.results, f, indent=2, default=str)
 
+def _parse_interval_label(weight_str):
+    """Parse friendly_best_weights string → (left, right). Picks widest interval."""
+    try:
+        parsed_weights = ast.literal_eval(weight_str)
+        if isinstance(parsed_weights[0], (int, float)):
+            val = float(parsed_weights[0])
+            return val, val
+        best_interval = parsed_weights[0]
+        max_diff = -1.0
+        for interval in parsed_weights:
+            if len(interval) == 1:
+                l, r = float(interval[0]), float(interval[0])
+            elif len(interval) >= 2:
+                l, r = float(interval[0]), float(interval[1])
+            else:
+                continue
+            diff = r - l
+            if diff > max_diff:
+                max_diff = diff
+                best_interval = [l, r]
+        return best_interval[0], best_interval[1]
+    except Exception:
+        return 0.0, 0.0
+
+
 class RegressionDataset(Dataset):
     def __init__(self, csv_file, tokenizer, max_length=64, split='train'):
         self.data = pd.read_csv(csv_file)
@@ -98,10 +123,17 @@ class RegressionDataset(Dataset):
             self.data = self.data.dropna(subset=['friendly_best_weights'])
         self.tokenizer = tokenizer
         self.max_length = max_length
-    
+
     def __len__(self):
         return len(self.data)
-    
+
+    def get_input_text(self, idx):
+        return str(self.data.iloc[idx]['query_text'])
+
+    def get_label(self, idx):
+        weight_str = str(self.data.iloc[idx]['friendly_best_weights'])
+        return _parse_interval_label(weight_str)
+
     def __getitem__(self, idx):
         text = str(self.data.iloc[idx]['query_text'])
         weight_str = str(self.data.iloc[idx]['friendly_best_weights'])

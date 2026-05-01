@@ -8,8 +8,12 @@ import yaml
 import argparse
 import os
 import json
+import time
 
 from train import Config, RegressionDataset, ModernBertRegression
+
+# Enable TF32 on Ampere+ GPUs for fp32 matmul (free ~10–20% on the fp32 path).
+torch.set_float32_matmul_precision('high')
 
 def load_model(model_path, config):
     if os.path.exists(os.path.join(model_path, 'best_model')):
@@ -17,40 +21,85 @@ def load_model(model_path, config):
 
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_path)
-    
+
+    # Flash Attention 2 requires CUDA + bf16/fp16.
+    use_fa2 = config.get('testing.use_flash_attention_2', False)
+    if use_fa2 and not torch.cuda.is_available():
+        raise RuntimeError("testing.use_flash_attention_2=true but CUDA is not available")
     model = ModernBertRegression(
         model_name=config.get('model.name', 'answerdotai/ModernBERT-base'),
-        dropout=config.get('model.dropout', 0.1)
+        dropout=config.get('model.dropout', 0.1),
+        attn_implementation='flash_attention_2' if use_fa2 else None,
     )
-    
+
     model.load_state_dict(torch.load(
-        os.path.join(model_path, 'pytorch_model.bin'), 
+        os.path.join(model_path, 'pytorch_model.bin'),
         map_location='cuda' if torch.cuda.is_available() else 'cpu'
     ))
-    
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model = model.to(device)
+    # Cast to bf16 on CUDA — memory-bandwidth-bound at batch=1, ~1.5–2× speedup
+    # via Tensor Cores on Ampere+. Required when FA2 is enabled.
+    if device == 'cuda':
+        model = model.to(torch.bfloat16)
+
     return model, tokenizer
 
-def test_model(model, dataset, batch_size=32):
+WARMUP_ITERS = 5
+
+
+def test_model(model, dataset, tokenizer, config):
+    """Per-query (batch size 1) inference. Times tokenize → forward → scalar-on-host.
+    Assumes retrieval has already produced top-1 sparse/dense docs; retrieval cost
+    is upstream and not included here.
+    """
     model.eval()
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-    
-    predictions, labels = [], []
-    
-    with torch.no_grad():
-        for batch in dataloader:
-            outputs = model(batch['input_ids'], batch['attention_mask'])
-            logits = outputs['logits'] if isinstance(outputs, dict) else outputs
-            
-            preds_batch = logits.squeeze().cpu().numpy()
-            if preds_batch.ndim == 0:
-                preds_batch = [preds_batch.item()]
-            
-            clamped_rounded = [round(max(0.0, min(1.0, x)), 2) for x in preds_batch]
-            predictions.extend(clamped_rounded)
-            labels.extend(batch['labels'].cpu().numpy().tolist())
-    
-    predictions = np.array(predictions)
-    labels = np.array(labels) 
+    device = next(model.parameters()).device
+    max_length = config.get('model.max_length', 512)
+
+    # FA2's HF wrapper calls Tensor.item() inside forward, which torch.compile
+    # cannot trace across — graph-breaks every call and re-traces. Skip compile
+    # when FA2 is on; SDPA + compile is the recommended combo anyway.
+    if device.type == 'cuda' and not config.get('testing.use_flash_attention_2', False):
+        model = torch.compile(model)
+
+    n = len(dataset)
+    predictions = np.zeros(n, dtype=np.float64)
+    labels = np.zeros((n, 2), dtype=np.float64)
+    latencies_ms = np.zeros(n, dtype=np.float64)
+
+    def _run_one(text):
+        enc = tokenizer(
+            text, truncation=True, padding='max_length',
+            max_length=max_length, return_tensors='pt'
+        )
+        input_ids = enc['input_ids'].to(device, non_blocking=True)
+        attention_mask = enc['attention_mask'].to(device, non_blocking=True)
+        outputs = model(input_ids, attention_mask)
+        logits = outputs['logits'] if isinstance(outputs, dict) else outputs
+        return float(logits.squeeze().float().cpu().item())
+
+    with torch.inference_mode():
+        if n > 0:
+            warm_text = dataset.get_input_text(0)
+            for _ in range(WARMUP_ITERS):
+                _run_one(warm_text)
+            if device.type == 'cuda':
+                torch.cuda.synchronize()
+
+        for i in range(n):
+            text = dataset.get_input_text(i)
+            labels[i] = dataset.get_label(i)
+
+            if device.type == 'cuda':
+                torch.cuda.synchronize()
+            t0 = time.perf_counter()
+            raw_pred = _run_one(text)
+            if device.type == 'cuda':
+                torch.cuda.synchronize()
+            latencies_ms[i] = (time.perf_counter() - t0) * 1000.0
+            predictions[i] = round(max(0.0, min(1.0, raw_pred)), 2)
     
     valid_mask = ~np.isnan(labels).any(axis=1)
     valid_predictions = predictions[valid_mask]
@@ -80,10 +129,10 @@ def test_model(model, dataset, batch_size=32):
             'Interval_RMSE': None,
             'R2_Midpoint': None
         }
-    
-    return metrics, predictions, labels
 
-def save_results(model_path, metrics, predictions, labels, dataset, test_file_path, config):
+    return metrics, predictions, labels, latencies_ms
+
+def save_results(model_path, metrics, predictions, labels, latencies_ms, dataset, test_file_path, config):
     results_file = os.path.join(model_path, 'results.json')
     with open(results_file, 'r') as f:
         results = json.load(f)
@@ -112,6 +161,7 @@ def save_results(model_path, metrics, predictions, labels, dataset, test_file_pa
     
     results_df = dataset.data.copy()
     results_df['predicted'] = np.round(predictions, 2)
+    results_df['latency_ms'] = latencies_ms
     results_df['actual_interval'] = [str(lbl) for lbl in labels]
     
     labels_np = np.array(labels)
@@ -159,11 +209,12 @@ def run_test(model_path, test_file_path=None):
         sparse_trec=config.get('data.sparse_trec_test'),
         dense_trec=config.get('data.dense_trec_test')
     )
+    print("## ", len(test_dataset), "queries")
     
-    print("Testing...")
-    metrics, predictions, labels = test_model(model, test_dataset, config.get('testing.batch_size', 32))
-    
-    save_results(model_path, metrics, predictions, labels, test_dataset, test_file_path, config)
+    print("Testing (batch size 1, per-query timing)...")
+    metrics, predictions, labels, latencies_ms = test_model(model, test_dataset, tokenizer, config)
+
+    save_results(model_path, metrics, predictions, labels, latencies_ms, test_dataset, test_file_path, config)
     
     print("\nResults:")
     for metric, value in metrics.items():
@@ -176,20 +227,28 @@ def run_test(model_path, test_file_path=None):
         actual = labels[i]
         predicted = predictions[i]
         print(f"'{text[:50]}...' -> Actual Interval: {actual}, Predicted: {predicted:.2f}")
+    return latencies_ms
 
 
 if __name__ == "__main__":
+    import glob
+
     _base_experiment_dir = os.environ.get("BASE_EXPERIMENT_DIR", "/extra/huaiyaom0/tr-intern/wrrf/experiment")
     _base_data_dir = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
+    experiments_dir = f"{_base_experiment_dir}/modern-bert-passage-conditioned/experiments"
 
-    dataset = "acord-entire-corpus"  # e.g. acord-entire-corpus, msmarco, nfcorpus, nq
-    combo = "bm25_vs_biencoder"      # e.g. bm25_vs_biencoder, bm25_vs_qwen3, rm3_vs_biencoder, rm3_vs_qwen3
-    split = "test"                   # test for acord/nfcorpus, dev for msmarco/nq
-    metric = "ndcg" if dataset in ["acord-entire-corpus", "nfcorpus"] else "mrr"
-    timestamp = ""                   # fill in from the experiments/ folder name
+    datasets = ["acord-entire-corpus", "msmarco", "nfcorpus", "nq"]
+    combos = ["bm25_vs_biencoder", "bm25_vs_qwen3", "rm3_vs_biencoder", "rm3_vs_qwen3"]
 
-    model_path = f"{_base_experiment_dir}/modern-bert-passage-conditioned/experiments/{dataset}-{combo}_{timestamp}"
-    test_file_path = f"{_base_data_dir}/{dataset}/{metric}_runs/{split}/top200/results_{split}_{combo}_best_weights_final_mean_with_text.csv"
-
-    if model_path:
-        run_test(model_path, test_file_path=test_file_path)
+    for dataset in datasets:
+        split = "test" if dataset in ["acord-entire-corpus", "nfcorpus"] else "dev"
+        metric = "ndcg" if dataset in ["acord-entire-corpus", "nfcorpus"] else "mrr"
+        for combo in combos:
+            matches = sorted(glob.glob(f"{experiments_dir}/{dataset}-{combo}_*"))
+            if not matches:
+                print(f"Skipping {dataset}/{combo}: no experiment folder found.")
+                continue
+            model_path = matches[-1]
+            test_file_path = f"{_base_data_dir}/{dataset}/{metric}_runs/{split}/top200/results_{split}_{combo}_best_weights_final_mean_with_text.csv"
+            latencies_ms = run_test(model_path, test_file_path=test_file_path)
+            print(f"=======> Total Latencies for dataset-combo {dataset}-{combo}, split {split}, metric {metric} {sum(latencies_ms):.4f} miliseconds")

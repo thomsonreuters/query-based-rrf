@@ -2,11 +2,18 @@ import pandas as pd
 import torch
 import os
 import json
+import time
 import bm25s
 from sentence_transformers import SentenceTransformer, util
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from tqdm import tqdm
 import re
+
+WARMUP_ITERS = 3
+
+# Enable TF32 on Ampere+ GPUs for any fp32 matmul (consistent with the encoder paths;
+# negligible effect here since most compute is bf16/4-bit, but kept for hygiene).
+torch.set_float32_matmul_precision('high')
 
 # --- Classes and Methods ---
 
@@ -142,7 +149,7 @@ def main():
     DATASETS = ["acord-entire-corpus", "nfcorpus", "nq", "msmarco"]
     COMBINATIONS = ["bm25_vs_biencoder", "bm25_vs_qwen3", "rm3_vs_biencoder", "rm3_vs_qwen3"]
     TOP_K = 5
-    BATCH_SIZE = 8 # Process queries in batches for massive speedup
+    BATCH_SIZE = 1  # Per-query (serving-style) timing
     
     # 1. Load Heavy Models ONCE before the loops
     quantization_config = BitsAndBytesConfig(
@@ -221,66 +228,74 @@ def main():
             # --- Prediction Loop ---
             predictions = []
             print(f"Starting prediction process for {len(test_df)} queries...")
-            
-            # Batched processing loop
-            for i in tqdm(range(0, len(test_df), BATCH_SIZE)):
-                batch_df = test_df.iloc[i:i+BATCH_SIZE]
-                
-                test_query_ids = batch_df['query_id'].tolist()
-                test_query_texts = batch_df['query_text'].tolist()
-                actual_weights = batch_df['friendly_best_weights'].tolist() if 'friendly_best_weights' in batch_df.columns else [None]*len(batch_df)
-                target_metrics = batch_df[target_metric].tolist() if target_metric in batch_df.columns else [None]*len(batch_df)
-                
-                # A. Retrieve Similar Queries in Batches
-                bm25_hits_batch = bm25_retriever.search_similar_queries_batch(test_query_texts, top_k=TOP_K)
-                dense_hits_batch = retrieve_top_k_qwen_batch(test_query_texts, qwen_embedder, corpus_embeddings, metadata_df, k=TOP_K)
-                
-                # B & C. Merge Results and Generate Prompts
-                prompts = []
-                for b_idx, test_query_text in enumerate(test_query_texts):
-                    merged_dict = {}
-                    for hit in bm25_hits_batch[b_idx] + dense_hits_batch[b_idx]:
-                        qid = str(hit['query_id'])
-                        if qid not in merged_dict:
-                            merged_dict[qid] = hit
-                        else:
-                            merged_dict[qid]['source'] += f" & {hit['source']}"
-                    
-                    context_queries = list(merged_dict.values())
-                    
-                    messages = generate_prediction_prompt(test_query_text, context_queries, target_metric)
-                    prompt = tokenizer.apply_chat_template(
-                        messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
-                    )
-                    prompts.append(prompt)
-                
-                # D. Run LLM Prediction in Batches
-                inputs = tokenizer(prompts, return_tensors="pt", padding=True).to(llm.device)
-                input_length = inputs.input_ids.shape[1]
-                
-                outputs = llm.generate(
-                    **inputs, 
-                    max_new_tokens=10, 
-                    temperature=0.1, 
-                    do_sample=True,
-                    pad_token_id=tokenizer.eos_token_id
+
+            def _predict_one(query_text):
+                """Full per-query pipeline: retrieve similar → prompt → tokenize → generate → parse."""
+                bm25_hits = bm25_retriever.search_similar_queries_batch([query_text], top_k=TOP_K)[0]
+                dense_hits = retrieve_top_k_qwen_batch(
+                    [query_text], qwen_embedder, corpus_embeddings, metadata_df, k=TOP_K
+                )[0]
+
+                merged_dict = {}
+                for hit in bm25_hits + dense_hits:
+                    qid = str(hit['query_id'])
+                    if qid not in merged_dict:
+                        merged_dict[qid] = hit
+                    else:
+                        merged_dict[qid]['source'] += f" & {hit['source']}"
+                context_queries = list(merged_dict.values())
+
+                messages = generate_prediction_prompt(query_text, context_queries, target_metric)
+                prompt = tokenizer.apply_chat_template(
+                    messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
                 )
-                
-                # Extract only the newly generated tokens
+                inputs = tokenizer(prompt, return_tensors="pt").to(llm.device)
+                input_length = inputs.input_ids.shape[1]
+
+                with torch.inference_mode():
+                    outputs = llm.generate(
+                        **inputs,
+                        max_new_tokens=10,
+                        temperature=0.1,
+                        do_sample=True,
+                        pad_token_id=tokenizer.eos_token_id
+                    )
+
                 generated_tokens = outputs[:, input_length:]
-                response_texts = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
-                
-                # E. Extract and Store Prediction
-                for b_idx, response_text in enumerate(response_texts):
-                    predicted_weight = extract_weight(response_text)
-                    
-                    predictions.append({
-                        "query_id": test_query_ids[b_idx],
-                        "query_text": test_query_texts[b_idx],
-                        "predicted_best_weight": predicted_weight,
-                        "actual_best_weights": actual_weights[b_idx],
-                        target_metric: target_metrics[b_idx]
-                    })
+                response_text = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)[0]
+                return extract_weight(response_text)
+
+            # Warmup (not timed) — primes CUDA kernels and any first-call caches.
+            if len(test_df) > 0:
+                warm_text = str(test_df.iloc[0]['query_text'])
+                for _ in range(WARMUP_ITERS):
+                    _predict_one(warm_text)
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
+
+            # Per-query timed loop
+            for _, row in tqdm(test_df.iterrows(), total=len(test_df)):
+                query_id = row['query_id']
+                query_text = str(row['query_text'])
+                actual_weight = row['friendly_best_weights'] if 'friendly_best_weights' in test_df.columns else None
+                tgt_metric = row[target_metric] if target_metric in test_df.columns else None
+
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
+                t0 = time.perf_counter()
+                predicted_weight = _predict_one(query_text)
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
+                latency_ms = (time.perf_counter() - t0) * 1000.0
+
+                predictions.append({
+                    "query_id": query_id,
+                    "query_text": query_text,
+                    "predicted_best_weight": predicted_weight,
+                    "actual_best_weights": actual_weight,
+                    target_metric: tgt_metric,
+                    "latency_ms": latency_ms,
+                })
 
             # --- Save Results ---
             print(f"Saving predictions to {OUTPUT_PATH}...")
