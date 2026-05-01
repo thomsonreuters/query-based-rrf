@@ -132,12 +132,12 @@ See the directory:
 
 ### Required inputs
 
-| Argument | Description |
-|---|---|
-| `--timing` | Timing CSV with one row per `(model × dataset × retriever combo)`. Must have columns: `model`, `dataset`, `sparse`, `dense`, `avg latency (ms)`. |
-| `--metrics` | One CSV per dataset (e.g. acord, msmarco, nfcorpus, nq). Must have columns: `Method`, `Dataset`, `Split`, `Sparse`, `Dense`, followed by metric columns — the 7th column (`NDCG@10` or `MRR@10`) is used. Metric values may include confidence intervals (`"0.132 [0.098, 0.166]"`); the point estimate is extracted automatically. |
-| `--mapping` | `utils/model_mapping.json` — maps model name variants across sheets to a single canonical name. |
-| `--output-dir` | Base output directory (default: `./`). |
+| Argument       | Description                                                                                                                                                                                                                                                                                                                         |
+|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--timing`     | Timing CSV with one row per `(model × dataset × retriever combo)`. Must have columns: `model`, `dataset`, `sparse`, `dense`, `avg latency (ms)`.                                                                                                                                                                                    |
+| `--metrics`    | One CSV per dataset (e.g. acord, msmarco, nfcorpus, nq). Must have columns: `Method`, `Dataset`, `Split`, `Sparse`, `Dense`, followed by metric columns — the 7th column (`NDCG@10` or `MRR@10`) is used. Metric values may include confidence intervals (`"0.132 [0.098, 0.166]"`); the point estimate is extracted automatically. |
+| `--mapping`    | `utils/model_mapping.json` — maps model name variants across sheets to a single canonical name.                                                                                                                                                                                                                                     |
+| `--output-dir` | Base output directory (default: `./`).                                                                                                                                                                                                                                                                                              |
 
 Both inputs are averaged over the four retriever combos (`bm25_vs_biencoder`, `bm25_vs_qwen3`, `rm3_vs_biencoder`, `rm3_vs_qwen3`). Models with no per-query inference cost (RRF, MOW) are assigned `latency = 0`.
 
