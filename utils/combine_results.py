@@ -68,7 +68,7 @@ def get_metrics(paths: list[str]) -> pd.DataFrame:
     if len(metric_names) > 1:
         # Melt mixed metric columns into a generic "metric" column.
         combined = combined.rename(columns={next(iter(metric_names)): "metric"})
-        for col in list(metric_names)[1:]:
+        for col in sorted(metric_names)[1:]:
             if col in combined.columns:
                 combined["metric"] = combined["metric"].combine_first(combined[col])
                 combined = combined.drop(columns=[col])

@@ -63,7 +63,7 @@ def load_and_validate(path: str) -> tuple[pd.DataFrame, str]:
 
 def filter_to_valid_combos(df: pd.DataFrame, path: str) -> pd.DataFrame:
     df = df.copy()
-    df["combo"] = df["Sparse"].str.strip() + "_vs_" + df["Dense"].str.strip()
+    df["combo"] = df["Sparse"] + "_vs_" + df["Dense"]
     mask = df["combo"].isin(VALID_COMBOS)
     n_excluded = (~mask).sum()
     if n_excluded:

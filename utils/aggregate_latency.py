@@ -43,7 +43,7 @@ def load_and_validate(path: str) -> pd.DataFrame:
 
 def build_combo_column(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-    df["combo"] = df["sparse"] + "_vs_" + df["dense"]  # whitespace already stripped by load_and_validate
+    df["combo"] = df["sparse"] + "_vs_" + df["dense"]
     return df
 
 

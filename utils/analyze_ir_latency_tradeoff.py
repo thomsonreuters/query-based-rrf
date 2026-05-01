@@ -7,7 +7,7 @@ Steps performed internally:
   2. Aggregate metric CSV(s)    → (dataset, model, <metric>)
   3. Normalize model names via mapping file
   4. Inner-join timing × metrics → results/combined_results.csv
-  5. Generate one tradeoff plot per dataset → results/plots/
+  5. Generate a 2×2 tradeoff grid (one subplot per dataset) → results/plots/tradeoff_all.png
 
 Usage:
     python utils/analyze_ir_latency_tradeoff.py \\
@@ -38,7 +38,7 @@ from aggregate_metrics import (
     filter_to_valid_combos as filter_metrics,
     aggregate as aggregate_metric,
 )
-from plot_tradeoff import plot_tradeoff
+from plot_tradeoff import plot_tradeoff_grid
 
 # Per-dataset display names and metric labels used in the plots.
 DATASET_DISPLAY = {
@@ -83,7 +83,7 @@ def aggregate_metrics(metric_paths: list[str]) -> tuple[pd.DataFrame, str]:
         # Mixed metrics (e.g. NDCG@10 + MRR@10): merge into a generic "metric" column.
         first = next(iter(metric_names))
         combined = combined.rename(columns={first: "metric"})
-        for col in metric_names - {first}:
+        for col in sorted(metric_names - {first}):
             if col in combined.columns:
                 combined["metric"] = combined["metric"].combine_first(combined[col])
                 combined = combined.drop(columns=[col])
@@ -123,19 +123,20 @@ def join(timing_df: pd.DataFrame, metrics_df: pd.DataFrame) -> pd.DataFrame:
 
 def make_plots(df: pd.DataFrame, metric_col: str, plots_dir: Path) -> None:
     plots_dir.mkdir(parents=True, exist_ok=True)
+    datasets = []
     for dataset, group in df.groupby("dataset", sort=False, observed=True):
-        models = [
-            (row["model"], row["avg latency (ms)"], row[metric_col])
-            for _, row in group.iterrows()
-        ]
-        plot_tradeoff(
+        models = list(group[["model", "avg latency (ms)", metric_col]].itertuples(index=False, name=None))
+        datasets.append((
+            DATASET_METRIC.get(dataset, metric_col),
+            DATASET_DISPLAY.get(dataset, dataset.upper()),
             models,
-            metric_name=DATASET_METRIC.get(dataset, metric_col),
-            dataset_name=DATASET_DISPLAY.get(dataset, dataset.upper()),
-            output=str(plots_dir / f"tradeoff_{dataset}.png"),
-            delta_mode=False,
-            show=False,
-        )
+        ))
+    plot_tradeoff_grid(
+        datasets,
+        output=str(plots_dir / "tradeoff_all.png"),
+        delta_mode=False,
+        show=False,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -170,14 +171,6 @@ def main() -> None:
     timing_df = aggregate_timing(args.timing)
     timing_df = apply_mapping(timing_df, mapping)
 
-    # TODO: remove once actual DAT-gpt5.2 latency measurements are available
-    datasets = timing_df["dataset"].unique().tolist()
-    dat_rows = pd.DataFrame([
-        {"dataset": ds, "model": "DAT-gpt5.2", "avg latency (ms)": 1700.0}
-        for ds in datasets
-    ])
-    timing_df = pd.concat([timing_df, dat_rows], ignore_index=True)
-
     timing_out = results_dir / "timing_aggregated.csv"
     timing_df.to_csv(timing_out, index=False)
     print(f"          saved → {timing_out}")
@@ -196,7 +189,7 @@ def main() -> None:
     result.to_csv(combined_out, index=False)
     print(f"          saved → {combined_out}")
 
-    print("Step 4/4  generating plots …")
+    print("Step 4/4  generating 2×2 plot …")
     make_plots(result, metric_col, plots_dir)
 
     print("Done.")
