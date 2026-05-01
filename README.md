@@ -151,11 +151,11 @@ results/
 ├── metrics_aggregated.csv    # avg metric per (dataset, model)
 ├── combined_results.csv      # inner join of the two above
 └── plots/
-    ├── tradeoff_acord.png
-    ├── tradeoff_msmarco.png
-    ├── tradeoff_nfcorpus.png
-    └── tradeoff_nq.png
+    ├── tradeoff_all.svg      # 2×2 grid, one subplot per dataset (vector, poster-quality)
+    └── tradeoff_all.pdf
 ```
+
+The plot encodes model family via **marker shape** and individual models via **color + fill** (Okabe–Ito palette, color-blind safe). Models with zero inference cost are pinned to the left anchor.
 
 ### Example
 
