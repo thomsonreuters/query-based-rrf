@@ -1,0 +1,13 @@
+{
+  "standard rrf":                                        "rrf",
+  "mean optimal weight":                                 "mow",
+  "roberta":                                             "roberta regression",
+  "modern-bert":                                         "moderbert regression",
+  "DAT - qwen3":                                         "DAT-qwen3",
+  "DAT - gpt5.2":                                        "DAT-gpt5.2",
+  "modern-bert-interval-weight-metrics":                 "moderbert interval",
+  "roberta-interval-weight-metrics":                     "roberta interval",
+  "modern-bert-passage-conditioned-metrics":             "moderbert passage cond",
+  "llm-qwen3":                                           "llm-fs-qwen3",
+  "llm-predict-ministral-3-14b-instruct-2512-metrics":   "llm-fs-ministral"
+}
