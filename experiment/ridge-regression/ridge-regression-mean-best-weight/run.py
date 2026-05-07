@@ -4,7 +4,7 @@ from test import test_model
 
 def run_pipeline():
     # Base paths and parameters
-    base_data_dir = "/extra/huaiyaom0/tr-intern/wrrf/dataset"
+    base_data_dir = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
     output_dir = "predictions"
     config_template = "config.yaml"
     

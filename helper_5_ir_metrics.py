@@ -385,7 +385,8 @@ if __name__ == "__main__":
         {"dataset": "nfcorpus", "split": "test"}
     ]
     
-    folder_path = "/extra/huaiyaom0/tr-intern/wrrf/results/01-standard-rrf"
+    _base_results_dir = os.environ.get("BASE_RESULTS_DIR", "/extra/huaiyaom0/tr-intern/wrrf/results")
+    folder_path = f"{_base_results_dir}/01-standard-rrf"
     
     # Process all datasets
     results = process_multiple_datasets(datasets_config, folder_path)

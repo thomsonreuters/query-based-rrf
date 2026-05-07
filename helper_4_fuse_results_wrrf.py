@@ -144,7 +144,8 @@ if __name__ == "__main__":
     use_fixed_weight = False  # Toggle this to switch logic
     sparse_weight = 0.5
     top_k = 200
-    experiment = "/extra/huaiyaom0/tr-intern/wrrf/experiment/roberta/roberta-experiment-1-mean-best-weight-1"
+    _base_experiment_dir = os.environ.get("BASE_EXPERIMENT_DIR", "/extra/huaiyaom0/tr-intern/wrrf/experiment")
+    experiment = f"{_base_experiment_dir}/roberta/roberta-experiment-1-mean-best-weight-1"
     
     if use_fixed_weight:
 
@@ -220,7 +221,8 @@ if __name__ == "__main__":
                     
                 sparse_file = f"dataset/{dataset_name}/search_results/{sparse_name}/top{top_k}/results_{split}.trec"
                 dense_file = f"dataset/{dataset_name}/search_results/{dense_name}/top{top_k}/results_{split}.trec"
-                output_file = f"/extra/huaiyaom0/tr-intern/wrrf/results/{subfolder}/{dataset_name}_{sparse_name}_{dense_name}_{split}.trec"
+                _base_results_dir = os.environ.get("BASE_RESULTS_DIR", "/extra/huaiyaom0/tr-intern/wrrf/results")
+                output_file = f"{_base_results_dir}/{subfolder}/{dataset_name}_{sparse_name}_{dense_name}_{split}.trec"
             
                 os.makedirs(os.path.dirname(output_file), exist_ok=True)
                 

@@ -5,7 +5,7 @@ from test import run_test as test_model
 
 def run_pipeline():
     # Base paths and parameters
-    base_data_dir = "/extra/huaiyaom0/tr-intern/wrrf/dataset"
+    base_data_dir = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
     config_template = "config.yaml"
     
     datasets = ["acord-entire-corpus", "msmarco", "nfcorpus", "nq"]

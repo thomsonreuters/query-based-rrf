@@ -54,6 +54,7 @@ def test_model(model_dir, test_file, output_base_dir):
         latencies_ms[i] = (time.perf_counter() - t0) * 1000.0
         y_test_pred[i] = pred
 
+    print(f"=======> Total Latencies for dataset-combo {model_dir}: {sum(latencies_ms):.4f} miliseconds")
     # Clip predictions to valid range [0, 1] and round to 2 decimal places
     y_test_pred = np.round(np.clip(y_test_pred, 0.00, 1.0), 2)
     

@@ -1,6 +1,27 @@
 
 
 
+## Configuration
+
+All scripts resolve data, results, and model paths through environment variables. Set these before running any script:
+
+| Variable | Used for | Default (cluster) |
+|---|---|---|
+| `BASE_DATA_DIR` | Dataset CSV files | `/extra/huaiyaom0/tr-intern/wrrf/dataset` |
+| `BASE_RESULTS_DIR` | Output `.trec` / metrics files | `/extra/huaiyaom0/tr-intern/wrrf/results` |
+| `BASE_EXPERIMENT_DIR` | Saved model checkpoints | `/extra/huaiyaom0/tr-intern/wrrf/experiment` |
+
+Copy `.env.local`, fill in your paths, and save it as `.env`:
+
+```bash
+cp .env.local .env
+# edit .env with your paths
+```
+
+Scripts load `.env` automatically via `utils/env.py`. You can also add the variables directly to your shell profile (`~/.zshrc` / `~/.bashrc`) or set them in your SageMaker environment settings.
+
+---
+
 ## Data Collection
 
 ### Optimal Fusion Weights (Ground Truth)
@@ -102,4 +123,47 @@ See the directory:
 
 See the directory:  
 [`/experiment/llm_selected_sparse_w`](./experiment/llm_selected_sparse_w)
+
+---
+
+## IR Performance–Latency Tradeoff Analysis
+
+`utils/analyze_ir_latency_tradeoff.py` is a single end-to-end script that takes raw timing and metric spreadsheets, joins them, and produces aggregated CSVs and per-dataset scatter plots.
+
+### Required inputs
+
+| Argument       | Description                                                                                                                                                                                                                                                                                                                         |
+|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--timing`     | Timing CSV with one row per `(model × dataset × retriever combo)`. Must have columns: `model`, `dataset`, `sparse`, `dense`, `avg latency (ms)`.                                                                                                                                                                                    |
+| `--metrics`    | One CSV per dataset (e.g. acord, msmarco, nfcorpus, nq). Must have columns: `Method`, `Dataset`, `Split`, `Sparse`, `Dense`, followed by metric columns — the 7th column (`NDCG@10` or `MRR@10`) is used. Metric values may include confidence intervals (`"0.132 [0.098, 0.166]"`); the point estimate is extracted automatically. |
+| `--mapping`    | `utils/model_mapping.json` — maps model name variants across sheets to a single canonical name.                                                                                                                                                                                                                                     |
+| `--output-dir` | Base output directory (default: `./`).                                                                                                                                                                                                                                                                                              |
+
+Both inputs are averaged over the four retriever combos (`bm25_vs_biencoder`, `bm25_vs_qwen3`, `rm3_vs_biencoder`, `rm3_vs_qwen3`). Models with no per-query inference cost (RRF, MOW) are assigned `latency = 0`.
+
+### Outputs
+
+All outputs are written under `<output-dir>/results/`:
+
+```
+results/
+├── timing_aggregated.csv     # avg latency per (dataset, model)
+├── metrics_aggregated.csv    # avg metric per (dataset, model)
+├── combined_results.csv      # inner join of the two above
+└── plots/
+    ├── tradeoff_all.svg      # 2×2 grid, one subplot per dataset (vector, poster-quality)
+    └── tradeoff_all.pdf
+```
+
+The plot encodes model family via **marker shape** and individual models via **color + fill** (Okabe–Ito palette, color-blind safe). Models with zero inference cost are pinned to the left anchor.
+
+### Example
+
+```bash
+python utils/analyze_ir_latency_tradeoff.py \
+    --timing  "wrrf tracker - timing.csv" \
+    --metrics acord.csv msmarco.csv nfcorpus.csv nq.csv \
+    --mapping utils/model_mapping.json \
+    --output-dir ./results
+```
 

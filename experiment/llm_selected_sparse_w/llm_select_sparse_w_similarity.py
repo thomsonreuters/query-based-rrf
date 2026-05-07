@@ -15,6 +15,8 @@ import pickle
 from typing import List, Tuple, Dict
 from scipy.stats import wilcoxon
 
+_BASE_DATA_DIR = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
+
  
 class AzureModel:
     def __init__(self, model_name="gpt-4o"):
@@ -647,8 +649,8 @@ def load_combined_training_data():
     Load and combine training data from nq and msmarco datasets for trec-covid special case.
     Returns combined DataFrame and average weight.
     """
-    nq_train_path = '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/nq/mrr_runs/train/results_train_best_weights_cleaned.csv'
-    msmarco_train_path = '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/msmarco/mrr_runs/train/results_train_best_weights_cleaned.csv'
+    nq_train_path = f'{_BASE_DATA_DIR}/nq/mrr_runs/train/results_train_best_weights_cleaned.csv'
+    msmarco_train_path = f'{_BASE_DATA_DIR}/msmarco/mrr_runs/train/results_train_best_weights_cleaned.csv'
     
     combined_dfs = []
     all_weights = []
@@ -874,15 +876,15 @@ def compare_methods_to_baselines(test_df, dataset_name, model_name, all_weights_
     if not hasattr(test_df, 'attrs') or 'source_path' not in test_df.attrs:
         # Fallback: try to determine cache directory from dataset name
         if dataset_name == 'trec-covid':
-            cache_dir = '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/trec-covid/ndcg_runs/test/llm_cache'
+            cache_dir = f'{_BASE_DATA_DIR}/trec-covid/ndcg_runs/test/llm_cache'
         elif dataset_name == 'acord':
-            cache_dir = '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/acord/ndcg_runs/test/llm_cache'
+            cache_dir = f'{_BASE_DATA_DIR}/acord/ndcg_runs/test/llm_cache'
         elif dataset_name == 'nfcorpus':
-            cache_dir = '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/nfcorpus/ndcg_runs/test/llm_cache'
+            cache_dir = f'{_BASE_DATA_DIR}/nfcorpus/ndcg_runs/test/llm_cache'
         elif dataset_name == 'nq':
-            cache_dir = '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/nq/mrr_runs/dev/llm_cache'
+            cache_dir = f'{_BASE_DATA_DIR}/nq/mrr_runs/dev/llm_cache'
         elif dataset_name == 'msmarco':
-            cache_dir = '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/msmarco/mrr_runs/dev/llm_cache'
+            cache_dir = f'{_BASE_DATA_DIR}/msmarco/mrr_runs/dev/llm_cache'
     
     # Define LLM methods based on available cache files
     llm_methods = [
@@ -1359,26 +1361,26 @@ if __name__ == '__main__':
     datasets = [
         # ACORD dataset (start with this one as requested)
         (
-            '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/acord/ndcg_runs/test/results_test_all_queries.csv',
-            '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/acord/ndcg_runs/train/results_train_best_weights_cleaned.csv'
+            f'{_BASE_DATA_DIR}/acord/ndcg_runs/test/results_test_all_queries.csv',
+            f'{_BASE_DATA_DIR}/acord/ndcg_runs/train/results_train_best_weights_cleaned.csv'
         ),
         # Other datasets
         (
-            '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/trec-covid/ndcg_runs/test/results_test_all_queries.csv',
+            f'{_BASE_DATA_DIR}/trec-covid/ndcg_runs/test/results_test_all_queries.csv',
             None
         ),
         (
-            '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/nfcorpus/ndcg_runs/test/results_test_all_queries.csv',
-            '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/nfcorpus/ndcg_runs/train/results_train_best_weights_cleaned.csv'
+            f'{_BASE_DATA_DIR}/nfcorpus/ndcg_runs/test/results_test_all_queries.csv',
+            f'{_BASE_DATA_DIR}/nfcorpus/ndcg_runs/train/results_train_best_weights_cleaned.csv'
         ),
         # MRR datasets (with training data)
         (
-            '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/nq/mrr_runs/dev/results_dev_all_queries.csv',
-            '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/nq/mrr_runs/train/results_train_best_weights_cleaned.csv'
+            f'{_BASE_DATA_DIR}/nq/mrr_runs/dev/results_dev_all_queries.csv',
+            f'{_BASE_DATA_DIR}/nq/mrr_runs/train/results_train_best_weights_cleaned.csv'
         ),
         (
-            '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/msmarco/mrr_runs/dev/results_dev_all_queries.csv',
-            '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/msmarco/mrr_runs/train/results_train_best_weights_cleaned.csv'
+            f'{_BASE_DATA_DIR}/msmarco/mrr_runs/dev/results_dev_all_queries.csv',
+            f'{_BASE_DATA_DIR}/msmarco/mrr_runs/train/results_train_best_weights_cleaned.csv'
         )
     ]
 

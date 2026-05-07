@@ -161,7 +161,8 @@ if __name__ == "__main__":
         for sparse in SPARSE_METHODS:
             for dense in DENSE_METHODS:
                 # 1. Update the input path dynamically for each iteration
-                input_file = f"/extra/huaiyaom0/tr-intern/wrrf/dataset/{DATASET}/{EVAL_METHOD}_runs/{split}/top200/results_{split}_{sparse}_vs_{dense}_best_weights.csv"
+                _base_data_dir = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
+                input_file = f"{_base_data_dir}/{DATASET}/{EVAL_METHOD}_runs/{split}/top200/results_{split}_{sparse}_vs_{dense}_best_weights.csv"
                 
                 # 2. Check if the file actually exists before processing to avoid crashes
                 if not os.path.exists(input_file):

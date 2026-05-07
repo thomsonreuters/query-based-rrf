@@ -10,6 +10,8 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import AzureChatOpenAI
 from tqdm import tqdm
 
+_BASE_DATA_DIR = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
+
 
 class AzureModel:
     def __init__(self, model_name="gpt-4o"):
@@ -284,12 +286,12 @@ def load_combined_training_data():
     Load and combine training data from nq and msmarco datasets for trec-covid special case.
     Returns combined DataFrame and average weight.
     """
-    nq_train_path = '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/nq/mrr_runs/train/results_train_best_weights_cleaned.csv'
-    msmarco_train_path = '/home/smcilroy/projects/labs_pl-intern-irisma/weighted_rrf/dataset/msmarco/mrr_runs/train/results_train_best_weights_cleaned.csv'
-    
+    nq_train_path = f'{_BASE_DATA_DIR}/nq/mrr_runs/train/results_train_best_weights_cleaned.csv'
+    msmarco_train_path = f'{_BASE_DATA_DIR}/msmarco/mrr_runs/train/results_train_best_weights_cleaned.csv'
+
     combined_dfs = []
     all_weights = []
-    
+
     # Load NQ training data
     if os.path.exists(nq_train_path):
         print(f"Loading NQ training data from {nq_train_path}...")
@@ -505,25 +507,25 @@ if __name__ == '__main__':
     datasets = [
         # NDCG datasets (no training data)
         (
-            '/home/sagemaker-user/labs_pl-intern-irisma/weighted_rrf/dataset/acord/ndcg_runs/test/results_test_all_queries.csv',
-            '/home/sagemaker-user/labs_pl-intern-irisma/weighted_rrf/dataset/acord/ndcg_runs/train/results_train_best_weights_cleaned.csv'
+            f'{_BASE_DATA_DIR}/acord/ndcg_runs/test/results_test_all_queries.csv',
+            f'{_BASE_DATA_DIR}/acord/ndcg_runs/train/results_train_best_weights_cleaned.csv'
         ),
         (
-            '/home/sagemaker-user/labs_pl-intern-irisma/weighted_rrf/dataset/trec-covid/ndcg_runs/test/results_test_all_queries.csv',
+            f'{_BASE_DATA_DIR}/trec-covid/ndcg_runs/test/results_test_all_queries.csv',
             None
         ),
         (
-            '/home/sagemaker-user/labs_pl-intern-irisma/weighted_rrf/dataset/nfcorpus/ndcg_runs/test/results_test_all_queries.csv',
-            '/home/sagemaker-user/labs_pl-intern-irisma/weighted_rrf/dataset/nfcorpus/ndcg_runs/train/results_train_best_weights_cleaned.csv'
+            f'{_BASE_DATA_DIR}/nfcorpus/ndcg_runs/test/results_test_all_queries.csv',
+            f'{_BASE_DATA_DIR}/nfcorpus/ndcg_runs/train/results_train_best_weights_cleaned.csv'
         ),
         # MRR datasets (with training data)
         (
-            '/home/sagemaker-user/labs_pl-intern-irisma/weighted_rrf/dataset/nq/mrr_runs/dev/results_dev_all_queries.csv',
-            '/home/sagemaker-user/labs_pl-intern-irisma/weighted_rrf/dataset/nq/mrr_runs/train/results_train_best_weights_cleaned.csv'
+            f'{_BASE_DATA_DIR}/nq/mrr_runs/dev/results_dev_all_queries.csv',
+            f'{_BASE_DATA_DIR}/nq/mrr_runs/train/results_train_best_weights_cleaned.csv'
         ),
         (
-            '/home/sagemaker-user/labs_pl-intern-irisma/weighted_rrf/dataset/msmarco/mrr_runs/dev/results_dev_all_queries.csv',
-            '/home/sagemaker-user/labs_pl-intern-irisma/weighted_rrf/dataset/msmarco/mrr_runs/train/results_train_best_weights_cleaned.csv'
+            f'{_BASE_DATA_DIR}/msmarco/mrr_runs/dev/results_dev_all_queries.csv',
+            f'{_BASE_DATA_DIR}/msmarco/mrr_runs/train/results_train_best_weights_cleaned.csv'
         )
     ]
 

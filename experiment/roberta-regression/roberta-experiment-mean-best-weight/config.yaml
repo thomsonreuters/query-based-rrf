@@ -1,7 +1,7 @@
 data:
   eval_split: 0.1
-  test_file: 
-  train_file: /extra/huaiyaom0/tr-intern/wrrf/dataset/msmarco/mrr_runs/train/top200/results_train_bm25_vs_biencoder_best_weights_final_mean_with_text.csv
+  test_file:   # set at runtime by run.py via BASE_DATA_DIR
+  train_file:  # set at runtime by run.py via BASE_DATA_DIR
   train_split: 0.9
 experiment:
   description: Baseline RoBERTa large regression model (1) trained on nfcorpus only
