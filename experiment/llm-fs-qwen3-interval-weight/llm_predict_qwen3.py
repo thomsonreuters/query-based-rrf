@@ -15,6 +15,10 @@ WARMUP_ITERS = 3
 # negligible effect here since most compute is bf16/4-bit, but kept for hygiene).
 torch.set_float32_matmul_precision('high')
 
+PROMPT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "interval_weight_prompt.json")
+with open(PROMPT_CONFIG_PATH, "r") as f:
+    PROMPT_CONFIG = json.load(f)
+
 # --- Classes and Methods ---
 
 def retrieve_top_k_qwen_batch(query_texts, model, corpus_embeddings, metadata_df, k=10):
@@ -88,37 +92,28 @@ class BM25Retriever:
 
 def generate_prediction_prompt(test_query, context_queries, metric_name):
     """Formats the context and the prompt for Qwen to predict the weight."""
-    
-    system_prompt = (
-        "You are an expert search system optimizer. Your task is to predict the optimal weight for sparse retriever"
-        "for combining a sparse retriever and a dense retriever for a given search query.\n\n"
-        "STRICT CONSTRAINT: You must output ONLY a single float number between 0.00 and 1.00. "
-        "Do not include any reasoning, markdown formatting, explanation, or conversational text. "
-        "Just the number."
-    )
-    
-    user_prompt = "### Context (Similar Historical Queries):\n"
-    user_prompt += f"For each historical query, you are provided its '{metric_name}' score and its "
-    user_prompt += "'friendly_best_weights' (a list of weights that yielded the best score, representing the weight given to the sparse retriever).\n\n"
-    
-    for i, q in enumerate(context_queries, 1):
-        user_prompt += f"[{i}] Query: \"{q['query_text']}\"\n"
-        user_prompt += f"    Optimal Weights: {q['friendly_best_weights']}\n"
-        user_prompt += f"    Score ({metric_name}): {q.get(metric_name, 'N/A')}\n\n"
-        
-    user_prompt += "### Task:\n"
-    user_prompt += "Based on the optimal weights of the similar context queries, predict a single optimal weight for the Target Query. "
 
-    
-    user_prompt += "### Target Query:\n"
-    user_prompt += f"Query: \"{test_query}\"\n\n"
-    user_prompt += "Predicted Optimal Weight:"
-    
+    system_prompt = PROMPT_CONFIG["system_prompt"]
+
+    user_prompt = PROMPT_CONFIG["user_context_header"].format(metric_name=metric_name)
+
+    for i, q in enumerate(context_queries, 1):
+        user_prompt += PROMPT_CONFIG["user_context_item"].format(
+            index=i,
+            query_text=q['query_text'],
+            friendly_best_weights=q['friendly_best_weights'],
+            metric_name=metric_name,
+            metric_value=q.get(metric_name, 'N/A'),
+        )
+
+    user_prompt += PROMPT_CONFIG["user_task"]
+    user_prompt += PROMPT_CONFIG["user_target"].format(test_query=test_query)
+
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt}
     ]
-    
+
     return messages
 
 def extract_weight(response_text):
@@ -149,7 +144,8 @@ def main():
     DATASETS = ["acord-entire-corpus", "nfcorpus", "nq", "msmarco"]
     COMBINATIONS = ["bm25_vs_biencoder", "bm25_vs_qwen3", "rm3_vs_biencoder", "rm3_vs_qwen3"]
     TOP_K = 5
-    BATCH_SIZE = 1  # Per-query (serving-style) timing
+    BATCH_SIZE = 1 # Process queries in batches for massive speedup
+    MODEL = "Qwen/Qwen3-32B"
     
     # 1. Load Heavy Models ONCE before the loops
     quantization_config = BitsAndBytesConfig(
@@ -157,8 +153,8 @@ def main():
         bnb_4bit_compute_dtype=torch.bfloat16
     )
 
-    print("Loading LLM (Qwen3) for weight prediction...")
-    tokenizer = AutoTokenizer.from_pretrained('Qwen/Qwen3-32B')
+    print(F"Loading LLM {MODEL} for weight prediction...")
+    tokenizer = AutoTokenizer.from_pretrained(MODEL)
     
     # Set padding configurations for batched generation
     if tokenizer.pad_token is None:
@@ -166,7 +162,7 @@ def main():
     tokenizer.padding_side = "left" 
     
     llm = AutoModelForCausalLM.from_pretrained(
-        'Qwen/Qwen3-32B', 
+        MODEL, 
         torch_dtype=torch.bfloat16, 
         device_map="auto",
         quantization_config=quantization_config
@@ -185,6 +181,7 @@ def main():
             # --- Dynamic Configuration per loop ---
             SPLIT = "test" if DATASET in ["acord-entire-corpus", "nfcorpus"] else "dev"
             metric = "ndcg" if DATASET in ["acord-entire-corpus", "nfcorpus"] else "mrr"
+            # model_folder = MODEL.split("/")[-1].lower()
 
             BASE_TRAIN_DIR = f"../../dataset/{DATASET}/qwen3-embeddings/train/top200"
             TRAIN_EMBEDDINGS_PATH = os.path.join(BASE_TRAIN_DIR, "train_query_embeddings.pt")
@@ -220,8 +217,11 @@ def main():
             bm25_retriever = BM25Retriever(TRAIN_CSV_PATH)
 
             print("Loading Corpus Embeddings and Metadata...")
-            # Load directly to the GPU once to avoid transfer overhead per query
-            corpus_embeddings = torch.load(TRAIN_EMBEDDINGS_PATH).to(qwen_embedder.device)
+            # Load directly to the GPU once to avoid transfer overhead per query.
+            # Cast to bf16 so it matches the embedder's encode() output dtype.
+            corpus_embeddings = torch.load(TRAIN_EMBEDDINGS_PATH).to(
+                qwen_embedder.device, dtype=torch.bfloat16
+            )
             metadata_df = pd.read_pickle(TRAIN_METADATA_PATH)
 
             # --- Prediction Loop ---
@@ -290,11 +290,12 @@ def main():
                 predictions.append({
                     "query_id": query_id,
                     "query_text": query_text,
-                    "predicted_best_weight": predicted_weight,
-                    "actual_best_weights": actual_weight,
+                    "predicted": predicted_weight,
+                    "actual": actual_weight,
                     target_metric: tgt_metric,
                     "latency_ms": latency_ms,
                 })
+                
 
             # --- Save Results ---
             print(f"Saving predictions to {OUTPUT_PATH}...")
