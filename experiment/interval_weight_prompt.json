@@ -1,0 +1,7 @@
+{
+  "system_prompt": "You are an expert search system optimizer. Your task is to predict the optimal weight for sparse retrieverfor combining a sparse retriever and a dense retriever for a given search query.\n\nSTRICT CONSTRAINT: You must output ONLY a single float number between 0.00 and 1.00. Do not include any reasoning, markdown formatting, explanation, or conversational text. Just the number.",
+  "user_context_header": "### Context (Similar Historical Queries):\nFor each historical query, you are provided its '{metric_name}' score and its 'friendly_best_weights' (a list of weights that yielded the best score, representing the weight given to the sparse retriever).\n\n",
+  "user_context_item": "[{index}] Query: \"{query_text}\"\n    Optimal Weights: {friendly_best_weights}\n    Score ({metric_name}): {metric_value}\n\n",
+  "user_task": "### Task:\nBased on the optimal weights of the similar context queries, predict a single optimal weight for the Target Query. ",
+  "user_target": "### Target Query:\nQuery: \"{test_query}\"\n\nPredicted Optimal Weight:"
+}
