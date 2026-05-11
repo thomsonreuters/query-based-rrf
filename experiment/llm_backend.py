@@ -1,5 +1,6 @@
 import asyncio
 import json
+import warnings
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 
@@ -164,9 +165,11 @@ class LocalMistralBackend(LLMBackend):
         self._max_retries = max_retries
 
     def generate(self, messages: list) -> str:
-        prompt = self._tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=".*tokenize=False.*")
+            prompt = self._tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True
+            )
         inputs = self._tokenizer(prompt, return_tensors="pt", padding=True)
         gen_inputs = {
             k: v.to(self._llm.device)
