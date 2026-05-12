@@ -107,6 +107,7 @@ def _run_one(
     bm25_hits = bm25_retriever.search_one(query_text, top_k=TOP_K)
     dense_hits = _retrieve_dense_one(query_text, qwen_embedder, corpus_embeddings, metadata_df, k=TOP_K)
 
+    t0 = time.perf_counter()
     merged_dict = {}
     for hit in bm25_hits + dense_hits:
         qid = str(hit['query_id'])
@@ -118,7 +119,6 @@ def _run_one(
 
     messages = generate_prediction_prompt(query_text, context_queries, target_metric)
 
-    t0 = time.perf_counter()
     response_text = llm_backend.generate(messages)
     latency_ms = (time.perf_counter() - t0) * 1000.0
 
@@ -222,9 +222,9 @@ def main():
 
             print(
                 f"Latency [{DATASET}/{COMBINATION}] n={len(latency_ms_list)}, "
-                f"mean={np.mean(latency_ms_list):.1f}ms, "
-                f"median={np.median(latency_ms_list):.1f}ms, "
-                f"p95={np.percentile(latency_ms_list, 95):.1f}ms"
+                f"mean={np.mean(latency_ms_list):.4f}ms, "
+                f"median={np.median(latency_ms_list):.4f}ms, "
+                f"p95={np.percentile(latency_ms_list, 95):.4f}ms"
             )
 
             print(f"Saving predictions to {OUTPUT_PATH}...")
