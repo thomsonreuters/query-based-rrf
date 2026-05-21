@@ -127,7 +127,7 @@ def _run_one(
 def main():
     DATASETS = ["acord-entire-corpus", "nfcorpus", "nq", "msmarco"]
     COMBINATIONS = ["bm25_vs_biencoder", "bm25_vs_qwen3", "rm3_vs_biencoder", "rm3_vs_qwen3"]
-    BACKEND = "local_qwen3"  # "bedrock", "local_qwen3", or "local_mistral"
+    BACKEND = "bedrock"  # "bedrock", "local_qwen3", or "local_mistral"
 
     if BACKEND == "bedrock":
         llm_backend = BedrockBackend(model_id="qwen.qwen3-32b-v1:0")
@@ -222,9 +222,9 @@ def main():
 
             print(
                 f"Latency [{DATASET}/{COMBINATION}] n={len(latency_ms_list)}, "
-                f"mean={np.mean(latency_ms_list):.1f}ms, "
-                f"median={np.median(latency_ms_list):.1f}ms, "
-                f"p95={np.percentile(latency_ms_list, 95):.1f}ms"
+                f"mean={np.mean(latency_ms_list):.4f}ms, "
+                f"median={np.median(latency_ms_list):.4f}ms, "
+                f"p95={np.percentile(latency_ms_list, 95):.4f}ms"
             )
 
             print(f"Saving predictions to {OUTPUT_PATH}...")

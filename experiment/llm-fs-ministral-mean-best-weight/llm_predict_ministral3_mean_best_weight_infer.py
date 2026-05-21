@@ -128,7 +128,7 @@ def _run_one(
 def main():
     DATASETS = ["acord-entire-corpus", "nfcorpus", "nq", "msmarco"]
     COMBINATIONS = ["bm25_vs_biencoder", "bm25_vs_qwen3", "rm3_vs_biencoder", "rm3_vs_qwen3"]
-    BACKEND = "local_mistral"  # "bedrock", "local_qwen3", or "local_mistral"
+    BACKEND = "bedrock"  # "bedrock", "local_qwen3", or "local_mistral"
 
     if BACKEND == "bedrock":
         llm_backend = BedrockBackend(model_id="mistral.ministral-3-14b-instruct")
