@@ -97,12 +97,11 @@ class BedrockBackend(LLMBackend):
 
 
 class LocalQwen3Backend(LLMBackend):
-    """Local Qwen3 inference via AutoModelForCausalLM with 4-bit quantization."""
+    """Local Qwen3 inference via AutoModelForCausalLM in bf16."""
 
     def __init__(self, model="Qwen/Qwen3-32B", max_new_tokens=10, temperature=0.1, max_retries=5):
-        from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+        from transformers import AutoModelForCausalLM, AutoTokenizer
 
-        quant_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16)
         self._tokenizer = AutoTokenizer.from_pretrained(model)
         if self._tokenizer.pad_token is None:
             self._tokenizer.pad_token = self._tokenizer.eos_token
@@ -111,7 +110,6 @@ class LocalQwen3Backend(LLMBackend):
             model,
             torch_dtype=torch.bfloat16,
             device_map="auto",
-            quantization_config=quant_config,
         )
         self._max_new_tokens = max_new_tokens
         self._temperature = temperature
@@ -145,11 +143,11 @@ class LocalQwen3Backend(LLMBackend):
 
 
 class LocalMistralBackend(LLMBackend):
-    """Local Ministral-3 inference via Mistral3ForConditionalGeneration with FP8 quantization."""
+    """Local Ministral-3 inference via Mistral3ForConditionalGeneration in bf16."""
 
     def __init__(self, model="mistralai/Ministral-3-14B-Instruct-2512", max_new_tokens=100,
                  temperature=0.1, max_retries=5):
-        from transformers import FineGrainedFP8Config, Mistral3ForConditionalGeneration, MistralCommonBackend
+        from transformers import Mistral3ForConditionalGeneration, MistralCommonBackend
 
         self._tokenizer = MistralCommonBackend.from_pretrained(model)
         if getattr(self._tokenizer, "pad_token", None) is None:
@@ -157,8 +155,8 @@ class LocalMistralBackend(LLMBackend):
         self._tokenizer.padding_side = "left"
         self._llm = Mistral3ForConditionalGeneration.from_pretrained(
             model,
+            torch_dtype=torch.bfloat16,
             device_map="auto",
-            quantization_config=FineGrainedFP8Config(dequantize=True),
         )
         self._max_new_tokens = max_new_tokens
         self._temperature = temperature
