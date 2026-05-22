@@ -32,7 +32,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from pathlib import Path
 
-matplotlib.rcParams["font.family"] = "monospace"
+matplotlib.rcParams["font.family"] = "DejaVu Sans"
 matplotlib.rcParams["font.size"] = 11
 
 # ---------------------------------------------------------------------------
@@ -42,18 +42,20 @@ matplotlib.rcParams["font.size"] = 11
 # Tier-based marker shapes — one shape per model family.
 # Models not listed fall back to "o".
 MODEL_TIER_MARKERS = {
-    "rrf":                    "X",   # tier 1: baselines
-    "mow":                    "X",
-    "ridge regression":       "s",   # tier 2: linear
-    "roberta regression":     "o",   # tier 3a: RoBERTa
-    "roberta interval":       "o",
-    "moderbert regression":   "^",   # tier 3b: ModernBERT
-    "moderbert interval":     "^",
-    "moderbert passage cond": "^",
-    "DAT-qwen3":              "D",   # tier 4: DAT-based
-    "DAT-gpt5.2":             "D",
-    "llm-fs-qwen3":           "v",   # tier 5: LLM few-shot
-    "llm-fs-ministral":       "v",
+    "rrf":                       "X",   # tier 1: baselines
+    "mow":                       "X",
+    "ridge regression":          "s",   # tier 2: linear
+    "roberta regression":        "^",   # tier 3a: RoBERTa
+    "roberta interval":          "^",
+    "moderbert regression":      "o",   # tier 3b: ModernBERT
+    "moderbert interval":        "o",
+    "DAT-qwen3":                 "D",   # tier 4: DAT-based / retrieval-aware
+    "DAT-minstral3":             "D",
+    "dat-moderbert-interval":    "o",
+    "llm-fs-qwen-3-mbw":         "v",   # tier 5: LLM few-shot
+    "llm-fs-qwen-3-interval":    "v",
+    "llm-fs-mistral-mbw":        "v",
+    "llm-fs-mistral-3-interval": "v",
 }
 
 # Okabe-Ito palette — color-blind safe (deuteranopia, protanopia, tritanopia).
@@ -83,14 +85,19 @@ LEGEND_DISPLAY_NAMES = {
     "mow":                    "Mean Optimal Weight",
     "roberta regression":     "RoBERTa regression",
     "roberta interval":       "RoBERTa interval",
-    "moderbert regression":   "ModernBERT regression",
-    "moderbert interval":     "ModernBERT interval",
-    "moderbert passage cond": "ModernBERT passage cond",
+    "moderbert regression":    "ModernBERT regression",
+    "moderbert interval":      "ModernBERT interval",
+    "dat-moderbert-interval":  "DAT ModernBERT interval",
 }
 
 # Canonical names pinned to the bottom of the Models legend, in this order.
 # All other models are sorted alphabetically above them.
 LEGEND_TAIL = ["mow", "rrf"]
+
+# Models that are retrieval-aware (passage-conditioned); drawn with a dot inside.
+RETRIEVAL_AWARE_MODELS = {"DAT-qwen3", "DAT-minstral3", "dat-moderbert-interval"}
+
+
 
 
 def _latency_bucket_idx(latency_ms):
@@ -130,13 +137,16 @@ def _draw_panel(ax, models, metric_name, dataset_name, delta_mode, style_map):
         x = ZERO_X if latency == 0 else latency
         points.append({"x": x, "y": value, "name": name,
                        "color": color, "filled": filled, "marker": marker,
-                       "latency": latency})
+                       "latency": latency,
+                       "retrieval_aware": name in RETRIEVAL_AWARE_MODELS})
 
     y_min = min(pt["y"] for pt in points)
     y_max = max(pt["y"] for pt in points)
     y_range = y_max - y_min
 
-    LOG_SPREAD = 0.04  # log10 units of horizontal spread per point within a bucket
+    LOG_SPREAD = 0.06  # log10 units of horizontal spread per point within a bucket
+    # Clamp slightly below gridlines so no point lands on the dashed line itself.
+    _BUCKET_UPPER = {1: 0.95, 2: 9.5, 3: 95.0}
     bucket_groups: dict[int, list[int]] = {}
     for idx, pt in enumerate(points):
         bucket_groups.setdefault(_latency_bucket_idx(pt["latency"]), []).append(idx)
@@ -147,7 +157,11 @@ def _draw_panel(ax, models, metric_name, dataset_name, delta_mode, style_map):
         n = len(sorted_idx)
         for rank, idx in enumerate(sorted_idx):
             offset = (rank - (n - 1) / 2) * LOG_SPREAD
-            points[idx]["x"] = points[idx]["x"] * (10 ** offset)
+            new_x = points[idx]["x"] * (10 ** offset)
+            bucket = _latency_bucket_idx(points[idx]["latency"])
+            if bucket in _BUCKET_UPPER:
+                new_x = min(new_x, _BUCKET_UPPER[bucket])
+            points[idx]["x"] = new_x
 
     for pt in points:
         fc = pt["color"] if pt["filled"] else "none"
@@ -157,6 +171,9 @@ def _draw_panel(ax, models, metric_name, dataset_name, delta_mode, style_map):
                 markerfacecolor=fc, markeredgecolor=pt["color"],
                 markersize=ms, markeredgewidth=ew,
                 linestyle="none", zorder=3)
+        if pt["retrieval_aware"]:
+            ax.plot(pt["x"], pt["y"], marker=".", color="white",
+                    markersize=ms * 0.38, linestyle="none", zorder=4)
 
     pad = y_range * 0.15 if y_range > 0 else 0.005
     ax.set_xscale("log")
@@ -181,6 +198,8 @@ def _draw_panel(ax, models, metric_name, dataset_name, delta_mode, style_map):
         ax.set_title(dataset_name, pad=12)
 
     ax.yaxis.grid(True, linestyle="-", linewidth=0.4, color="lightgray", zorder=0)
+    for vx in (1, 10, 100):
+        ax.axvline(vx, linestyle="--", linewidth=0.7, color="lightgray", zorder=0)
     ax.set_axisbelow(True)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -215,7 +234,13 @@ def _model_legend_handles(points):
                   key=lambda h: h.get_label())
     tail = [h for n in LEGEND_TAIL
             for h in handles if h.get_label() == LEGEND_DISPLAY_NAMES.get(n, n)]
-    return body + tail
+
+    note = matplotlib.lines.Line2D(
+        [0], [0], linestyle="none", marker=".", color="white",
+        markeredgecolor="dimgray", markeredgewidth=0.8, markersize=6,
+        label="· = retrieval aware",
+    )
+    return body + tail + [note]
 
 
 def _place_panel_legend(ax, model_handles):
