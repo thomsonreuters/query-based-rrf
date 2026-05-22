@@ -103,6 +103,7 @@ def _run_one(
     llm_backend,
     target_metric,
 ):
+    t0 = time.perf_counter()
     bm25_hits = bm25_retriever.search_one(query_text, top_k=TOP_K)
     dense_hits = _retrieve_dense_one(query_text, qwen_embedder, corpus_embeddings, metadata_df, k=TOP_K)
 
@@ -117,7 +118,6 @@ def _run_one(
 
     messages = generate_prediction_prompt(query_text, context_queries, target_metric)
 
-    t0 = time.perf_counter()
     response_text = llm_backend.generate(messages)
     latency_ms = (time.perf_counter() - t0) * 1000.0
 
@@ -143,7 +143,12 @@ def main():
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("Loading Sentence Transformer (Qwen3-8B) for embedding retrieval...")
-    qwen_embedder = SentenceTransformer('Qwen/Qwen3-8B', device=device, trust_remote_code=True)
+    qwen_embedder = SentenceTransformer(
+        'Qwen/Qwen3-8B',
+        device=device,
+        trust_remote_code=True,
+        model_kwargs={"torch_dtype": torch.bfloat16},
+    )
 
     for DATASET in DATASETS:
         for COMBINATION in COMBINATIONS:
