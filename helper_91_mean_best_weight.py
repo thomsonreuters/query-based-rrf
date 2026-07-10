@@ -64,36 +64,78 @@ def calculate_overall_average(df):
     avg = df['mean_best_weight'].mean()
     return avg
 
-def main():
-    _base_data_dir = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
-    input_csv = f"{_base_data_dir}/nq/mrr_runs/train/top200/results_train_bm25_vs_biencoder_best_weights_friendly_intervals.csv"
-    output_csv = input_csv.replace('.csv', '_with_mean_weight.csv')
-    
+def process_single_file(input_csv, output_csv):
+    """Process a single CSV file"""
     # Read the CSV file
     df = pd.read_csv(input_csv)
 
-    print("Available columns:")
-    print(df.columns.tolist())
-    
     # Calculate mean_best_weight for each row
     df['mean_best_weight'] = df.apply(
-        lambda row: calculate_mean_best_weight(row['friendly_best_weights'], row['interval_count']), 
+        lambda row: calculate_mean_best_weight(row['friendly_best_weights'], row['interval_count']),
         axis=1
     )
-    
+
     # Calculate and print the overall average across all entries
     overall_avg = calculate_overall_average(df)
-    print(f"\nOverall Average mean_best_weight: {overall_avg:.4f}")
-    
+    print(f"Overall Average mean_best_weight: {overall_avg:.4f}")
+
     # Reorder columns to put 'best_weights' last
     cols = [col for col in df.columns if col != 'best_weights'] + ['best_weights']
     df = df[cols]
-    
+
     # Save the result to a new CSV file
     df.to_csv(output_csv, index=False)
-    
-    # Display the result
-    print(df)
+    print(f"Saved: {output_csv}")
+
+    return overall_avg
 
 if __name__ == "__main__":
-    main()
+    DATASET = "nfcorpus"  # acord-entire-corpus, nfcorpus, nq, msmarco
+    SPLITS = ["train", "dev", "test"]
+    TOP_K = 200
+    RUN_DIR = ["ndcg_runs_3decimalp", "mrr_runs_3decimalp",
+               "ndcg_runs_2decimalp", "mrr_runs_2decimalp" ]  # mrr_runs_3decimalp or mrr_runs_2decimalp
+
+    # Define search method combinations
+    COMBINATIONS = [
+        ("bm25", "biencoder"),
+        ("bm25", "qwen3"),
+        ("rm3", "biencoder"),
+        ("rm3", "qwen3")
+    ]
+
+    _base_data_dir = "dataset"
+
+    print(f"Starting mean best weight calculation for dataset: {DATASET}")
+    print(f"Splits: {SPLITS}")
+    print(f"Search combinations: {COMBINATIONS}\n")
+
+    for split in SPLITS:
+        print(f"\n{'='*80}")
+        print(f"Processing split: {split}")
+        print(f"{'='*80}\n")
+
+        for sparse_method, dense_method in COMBINATIONS:
+            print(f"\n{'-'*80}")
+            print(f"Combination: {sparse_method} + {dense_method}")
+            print(f"{'-'*80}")
+
+            try:
+                for run_dir in RUN_DIR:
+                    input_csv = f"{_base_data_dir}/{DATASET}/{run_dir}/{split}/top{TOP_K}/results_{split}_{sparse_method}_vs_{dense_method}_best_weights_friendly_intervals.csv"
+                    output_csv = input_csv.replace('.csv', '_with_mean_weight.csv')
+
+                    if not os.path.exists(input_csv):
+                        print(f"Warning: Input file not found: {input_csv}")
+                        continue
+
+                    # Process the file
+                    overall_avg = process_single_file(input_csv, output_csv)
+
+            except Exception as e:
+                print(f"Error processing {split} with {sparse_method}+{dense_method}: {e}")
+                continue
+
+    print(f"\n{'='*80}")
+    print("All mean best weight calculations complete!")
+    print(f"{'='*80}")
