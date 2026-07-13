@@ -28,7 +28,8 @@ dependencies = [
     "langchain-openai",
     "sentence-transformers",
     "rank-bm25",
-    "labs-pl-common",
+    "bm25s",
+    "mistral-common",
     "boto3>=1.42.80",
 ]
 
@@ -37,6 +38,3 @@ flash-attn = ["torch"]
 
 [tool.uv]
 no-build-isolation-package = ["flash-attn"]
-
-[tool.uv.sources]
-labs-pl-common = { path = "../../labs-pl_skills/packages/labs-pl-common" }

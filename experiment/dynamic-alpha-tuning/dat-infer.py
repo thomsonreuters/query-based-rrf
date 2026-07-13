@@ -2,9 +2,9 @@ import os
 import sys
 import json
 import asyncio
-import pandas as pd
 import numpy as np
 from tqdm import tqdm
+import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))
 from helper_5_ir_metrics import process_single_dataset
@@ -55,26 +55,6 @@ def build_user_message(query_text, sparse_doc_text, dense_doc_text):
         f'- **sparse retrieval Top1 Result:** "{sparse_doc_text}"\n'
         f'- **dense retrieval Top1 Result:** "{dense_doc_text}"'
     )
-
-
-# ---------------------------------------------------------------------------
-# Cache helpers
-# ---------------------------------------------------------------------------
-
-def load_cache(cache_file):
-    if os.path.exists(cache_file):
-        try:
-            df = pd.read_csv(cache_file)
-            return df.set_index('query_id')[['sparse_score', 'dense_score']].to_dict('index')
-        except (pd.errors.EmptyDataError, KeyError):
-            return {}
-    return {}
-
-
-def save_to_cache(cache_file, query_id, sparse_score, dense_score):
-    entry = pd.DataFrame([{'query_id': query_id, 'sparse_score': sparse_score, 'dense_score': dense_score}])
-    header = not os.path.exists(cache_file)
-    entry.to_csv(cache_file, mode='a', header=header, index=False)
 
 
 # ---------------------------------------------------------------------------
@@ -166,38 +146,26 @@ def compute_alpha(sparse_score, dense_score):
 # ---------------------------------------------------------------------------
 
 async def get_llm_scores(llm_client, query_id, query_text, sparse_doc_text, dense_doc_text,
-                         cache, cache_file, semaphore=None, failed_log_file=None,
-                         max_retries=5, initial_delay=2):
+                         max_retries=5):
     """
-    Returns (query_id, sparse_score, dense_score) for a query, using cache if available.
-    Retries on failure with exponential backoff. Logs failed queries instead of using fallback.
-    Returns None scores if all retries are exhausted.
+    Returns (query_id, sparse_score, dense_score) for a query.
+    Retries on failure immediately. Returns None scores if all retries are exhausted.
     """
-    if query_id in cache:
-        entry = cache[query_id]
-        return query_id, entry['sparse_score'], entry['dense_score']
-
     user_message = build_user_message(query_text, sparse_doc_text, dense_doc_text)
 
     last_error = None
     for attempt in range(max_retries):
         try:
-            async with semaphore if semaphore else asyncio.Semaphore(1):
-                content = await llm_client.invoke(SYSTEM_MESSAGE, user_message)
+            content = await llm_client.invoke(SYSTEM_MESSAGE, user_message)
             parts = content.strip().split()
             sparse_score = int(parts[0])
             dense_score = int(parts[1])
             return query_id, sparse_score, dense_score
         except Exception as e:
             last_error = e
-            delay = initial_delay * (2 ** attempt)
-            print(f"  [query {query_id}] attempt {attempt+1}/{max_retries} failed: {e}. Retrying in {delay}s...")
-            await asyncio.sleep(delay)
+            print(f"  [query {query_id}] attempt {attempt+1}/{max_retries} failed: {e}. Retrying...")
 
-    print(f"  [query {query_id}] all retries exhausted. Logging as failed.")
-    if failed_log_file:
-        with open(failed_log_file, 'a') as f:
-            f.write(f"{query_id}\t{last_error}\n")
+    print(f"  [query {query_id}] FAILED after {max_retries} retries: {last_error}")
     return query_id, None, None
 
 
@@ -206,17 +174,15 @@ async def get_llm_scores(llm_client, query_id, query_text, sparse_doc_text, dens
 # ---------------------------------------------------------------------------
 
 async def run_dynamic_alpha(
-    dataset_name,
-    sparse_retriever,
-    dense_retriever,
-    split,
-    base_data_dir,
-    output_dir,
-    llm_client,
-    model_name,
-    top_k=200,
-    concurrency=20,
-    batch_size=60,
+        dataset_name,
+        sparse_retriever,
+        dense_retriever,
+        split,
+        base_data_dir,
+        output_dir,
+        llm_client,
+        model_name,
+        top_k=200,
 ):
     """
     For one dataset × retriever combo × split:
@@ -255,12 +221,6 @@ async def run_dynamic_alpha(
             q = json.loads(line)
             queries[str(q['_id'])] = q['text']
 
-    cache_dir = os.path.join(output_dir, "llm_cache")
-    os.makedirs(cache_dir, exist_ok=True)
-    cache_file = os.path.join(cache_dir, f"{dataset_name}_{model_name}_{combo}_{split}_cache.csv")
-    failed_log_file = os.path.join(cache_dir, f"{dataset_name}_{model_name}_{combo}_{split}_failed.tsv")
-    cache = load_cache(cache_file)
-
     all_query_ids = sorted(set(sparse_results.keys()) | set(dense_results.keys()))
 
     query_inputs = []
@@ -273,22 +233,20 @@ async def run_dynamic_alpha(
         dense_doc_text = corpus.get(dense_top1, "") if dense_top1 else ""
         query_inputs.append((query_id, queries.get(query_id, ""), sparse_doc_text, dense_doc_text))
 
-    n_batches = (len(query_inputs) + batch_size - 1) // batch_size
-    print(f"  Processing {len(query_inputs)} queries in {n_batches} batches (batch_size={batch_size}, concurrency={concurrency})...")
+    print(f"  Processing {len(query_inputs)} queries one at a time...")
 
+    start = time.time()
+    print("start time: ", start)
     llm_scores = {}
-    for i in tqdm(range(0, len(query_inputs), batch_size), desc=f"{dataset_name}/{combo}/{split}", total=n_batches):
-        batch = query_inputs[i:i + batch_size]
-        semaphore = asyncio.Semaphore(concurrency)
-        batch_tasks = [
-            get_llm_scores(llm_client, qid, qt, sd, dd, cache, cache_file, semaphore, failed_log_file)
-            for qid, qt, sd, dd in batch
-        ]
-        batch_results = await asyncio.gather(*batch_tasks)
-        for qid, s, d in batch_results:
-            if s is not None and d is not None:
-                save_to_cache(cache_file, qid, s, d)
-            llm_scores[qid] = (s, d)
+    query_times = []
+    for qid, qt, sd, dd in tqdm(query_inputs, desc=f"{dataset_name}/{combo}/{split}"):
+        t0 = time.perf_counter()
+        qid, s, d = await get_llm_scores(llm_client, qid, qt, sd, dd)
+        alpha = compute_alpha(s, d) if (s is not None and d is not None) else None
+        t1 = time.perf_counter()
+        query_times.append((t1 - t0)*1000)
+        llm_scores[qid] = (s, d, alpha)
+    print(f"=======> Latency [{dataset_name}/{combo}] Per-query time — for #queries: {len(query_times)}, total: {np.sum(query_times):.4f} mean: {np.mean(query_times):.4f}s, median: {np.median(query_times):.4f}s, p95: {np.percentile(query_times, 95):.4f}s")
 
     fused_rows = []
 
@@ -299,10 +257,9 @@ async def run_dynamic_alpha(
         norm_sparse = minmax_normalize_scores(sparse_q)
         norm_dense = minmax_normalize_scores(dense_q)
 
-        sparse_score, dense_score = llm_scores[query_id]
-        if sparse_score is None or dense_score is None:
+        sparse_score, dense_score, alpha = llm_scores[query_id]
+        if alpha is None:
             continue
-        alpha = compute_alpha(sparse_score, dense_score)
 
         all_docs = set(norm_sparse.keys()) | set(norm_dense.keys())
         doc_final_scores = {}
@@ -314,6 +271,8 @@ async def run_dynamic_alpha(
         ranked = sorted(doc_final_scores.items(), key=lambda x: x[1], reverse=True)
         for rank, (doc_id, score) in enumerate(ranked, 1):
             fused_rows.append((query_id, doc_id, rank, score))
+    end = time.time()
+    print(f"Execution time: {end - start:.4f} seconds")
 
     os.makedirs(output_dir, exist_ok=True)
     run_id = f"dynamic_alpha_{model_name}"
@@ -330,13 +289,13 @@ async def run_dynamic_alpha(
 # ---------------------------------------------------------------------------
 
 async def main():
-    BASE_DATA_DIR = os.environ.get("BASE_DATA_DIR", "/extra/huaiyaom0/tr-intern/wrrf/dataset")
-    OUTPUT_DIR = os.environ.get("BASE_RESULTS_DIR", "/extra/huaiyaom0/tr-intern/wrrf/results") + "/dynamic-alpha-tuning-qwen3_32"
+    BASE_DATA_DIR = "/home/sagemaker-user/query-aware-rrf/query-based-rrf/dataset"
+    OUTPUT_DIR = "/home/sagemaker-user/query-aware-rrf/query-based-rrf/data/output/dynamic-alpha-tuning-qwen3_32"
 
     BACKEND = "local_qwen3"  # "bedrock", "local_qwen3", or "local_mistral"
 
     if BACKEND == "bedrock":
-        llm_client = BedrockBackend(model_id="qwen.qwen3-32b-v1:0", max_workers=50)
+        llm_client = BedrockBackend(model_id="qwen.qwen3-32b-v1:0", max_workers=1)
         model_name = "qwen3-32b"
     elif BACKEND == "local_qwen3":
         llm_client = LocalQwen3Backend(model="Qwen/Qwen3-32B", max_new_tokens=32)
@@ -348,10 +307,10 @@ async def main():
         raise ValueError(f"Unknown BACKEND: {BACKEND}")
 
     DATASETS = [
+        # ("acord-entire-corpus", "test"),
         ("msmarco",             "dev"),
-        ("nq",                  "dev"),
-        ("acord-entire-corpus", "test"),
-        ("nfcorpus",            "test"),
+        # ("nfcorpus",            "test"),
+        # ("nq",                  "dev"),
     ]
 
     SPARSE_RETRIEVERS = [ "bm25", "rm3" ]

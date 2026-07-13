@@ -4,7 +4,9 @@ import os
 import json
 import bm25s
 from sentence_transformers import SentenceTransformer, util
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from llm_backend import BedrockBackend, LocalQwen3Backend, LocalMistralBackend
 from tqdm import tqdm
 import re
 
@@ -137,29 +139,18 @@ def main():
     DATASETS = ["acord-entire-corpus", "nfcorpus", "nq", "msmarco"]
     COMBINATIONS = ["bm25_vs_biencoder", "bm25_vs_qwen3", "rm3_vs_biencoder", "rm3_vs_qwen3"]
     TOP_K = 5
-    BATCH_SIZE = 8 # Process queries in batches for massive speedup
-    MODEL = "Qwen/Qwen3-32B"
+    BATCH_SIZE = 8
+    BACKEND = "local_qwen3"  # "bedrock", "local_qwen3", or "local_mistral"
 
     # 1. Load Heavy Models ONCE before the loops
-    quantization_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.bfloat16
-    )
-
-    print(F"Loading LLM {MODEL} for weight prediction...")
-    tokenizer = AutoTokenizer.from_pretrained(MODEL)
-
-    # Set padding configurations for batched generation
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    tokenizer.padding_side = "left"
-
-    llm = AutoModelForCausalLM.from_pretrained(
-        MODEL,
-        torch_dtype=torch.bfloat16,
-        device_map="auto",
-        quantization_config=quantization_config
-    )
+    if BACKEND == "bedrock":
+        llm_backend = BedrockBackend(model_id="qwen.qwen3-32b-v1:0")
+    elif BACKEND == "local_qwen3":
+        llm_backend = LocalQwen3Backend(model="Qwen/Qwen3-32B", max_new_tokens=10)
+    elif BACKEND == "local_mistral":
+        llm_backend = LocalMistralBackend(model="mistralai/Ministral-3-14B-Instruct-2512", max_new_tokens=100)
+    else:
+        raise ValueError(f"Unknown BACKEND: {BACKEND}")
 
     print("Loading Sentence Transformer (Qwen3) for embedding retrieval...")
     qwen_embedder = SentenceTransformer('Qwen/Qwen3-8B', device="cuda:0", trust_remote_code=True)
@@ -212,7 +203,7 @@ def main():
             print("Loading Corpus Embeddings and Metadata...")
             # Load directly to the GPU once to avoid transfer overhead per query.
             # Match the embedder's dtype so cos_sim doesn't fail on bfloat16 vs float32.
-            corpus_embeddings = torch.load(TRAIN_EMBEDDINGS_PATH).to(
+            corpus_embeddings = torch.load(TRAIN_EMBEDDINGS_PATH, weights_only=False).to(
                 device=qwen_embedder.device, dtype=next(qwen_embedder.parameters()).dtype
             )
             metadata_df = pd.read_pickle(TRAIN_METADATA_PATH)
@@ -239,8 +230,7 @@ def main():
                 bm25_hits_batch = bm25_retriever.search_similar_queries_batch(test_query_texts, top_k=TOP_K)
                 dense_hits_batch = retrieve_top_k_qwen_batch(test_query_texts, qwen_embedder, corpus_embeddings, metadata_df, k=TOP_K)
 
-                # B & C. Merge Results and Generate Prompts
-                prompts = []
+                # B, C, D, E. Merge results, generate prompt, call LLM, store prediction
                 for b_idx, test_query_text in enumerate(test_query_texts):
                     merged_dict = {}
                     for hit in bm25_hits_batch[b_idx] + dense_hits_batch[b_idx]:
@@ -251,31 +241,8 @@ def main():
                             merged_dict[qid]['source'] += f" & {hit['source']}"
 
                     context_queries = list(merged_dict.values())
-
                     messages = generate_prediction_prompt(test_query_text, context_queries, target_metric)
-                    prompt = tokenizer.apply_chat_template(
-                        messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
-                    )
-                    prompts.append(prompt)
-
-                # D. Run LLM Prediction in Batches
-                inputs = tokenizer(prompts, return_tensors="pt", padding=True).to(llm.device)
-                input_length = inputs.input_ids.shape[1]
-
-                outputs = llm.generate(
-                    **inputs,
-                    max_new_tokens=10,
-                    temperature=0.1,
-                    do_sample=True,
-                    pad_token_id=tokenizer.eos_token_id
-                )
-
-                # Extract only the newly generated tokens
-                generated_tokens = outputs[:, input_length:]
-                response_texts = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
-
-                # E. Extract and Store Prediction
-                for b_idx, response_text in enumerate(response_texts):
+                    response_text = llm_backend.generate(messages)
                     predicted_weight = extract_weight(response_text)
 
                     predictions.append({

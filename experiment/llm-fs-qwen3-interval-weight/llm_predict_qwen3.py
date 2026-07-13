@@ -5,7 +5,9 @@ import json
 import time
 import bm25s
 from sentence_transformers import SentenceTransformer, util
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from llm_backend import BedrockBackend, LocalQwen3Backend, LocalMistralBackend
 from tqdm import tqdm
 import re
 
@@ -144,30 +146,18 @@ def main():
     DATASETS = ["acord-entire-corpus", "nfcorpus", "nq", "msmarco"]
     COMBINATIONS = ["bm25_vs_biencoder", "bm25_vs_qwen3", "rm3_vs_biencoder", "rm3_vs_qwen3"]
     TOP_K = 5
-    BATCH_SIZE = 1 # Process queries in batches for massive speedup
-    MODEL = "Qwen/Qwen3-32B"
-    
-    # 1. Load Heavy Models ONCE before the loops
-    quantization_config = BitsAndBytesConfig(
-        load_in_4bit=True, 
-        bnb_4bit_compute_dtype=torch.bfloat16
-    )
+    BACKEND = "local_qwen3"  # "bedrock", "local_qwen3", or "local_mistral"
 
-    print(F"Loading LLM {MODEL} for weight prediction...")
-    tokenizer = AutoTokenizer.from_pretrained(MODEL)
-    
-    # Set padding configurations for batched generation
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    tokenizer.padding_side = "left" 
-    
-    llm = AutoModelForCausalLM.from_pretrained(
-        MODEL, 
-        torch_dtype=torch.bfloat16, 
-        device_map="auto",
-        quantization_config=quantization_config
-    )
-    
+    # 1. Load Heavy Models ONCE before the loops
+    if BACKEND == "bedrock":
+        llm_backend = BedrockBackend(model_id="qwen.qwen3-32b-v1:0")
+    elif BACKEND == "local_qwen3":
+        llm_backend = LocalQwen3Backend(model="Qwen/Qwen3-32B", max_new_tokens=10)
+    elif BACKEND == "local_mistral":
+        llm_backend = LocalMistralBackend(model="mistralai/Ministral-3-14B-Instruct-2512", max_new_tokens=100)
+    else:
+        raise ValueError(f"Unknown BACKEND: {BACKEND}")
+
     print("Loading Sentence Transformer (Qwen3) for embedding retrieval...")
     qwen_embedder = SentenceTransformer('Qwen/Qwen3-8B', device="cuda:0", trust_remote_code=True)
 
@@ -220,7 +210,7 @@ def main():
             print("Loading Corpus Embeddings and Metadata...")
             # Load directly to the GPU once to avoid transfer overhead per query.
             # Cast to bf16 so it matches the embedder's encode() output dtype.
-            corpus_embeddings = torch.load(TRAIN_EMBEDDINGS_PATH).to(
+            corpus_embeddings = torch.load(TRAIN_EMBEDDINGS_PATH, weights_only=False).to(
                 qwen_embedder.device, dtype=torch.bfloat16
             )
             metadata_df = pd.read_pickle(TRAIN_METADATA_PATH)
@@ -246,23 +236,7 @@ def main():
                 context_queries = list(merged_dict.values())
 
                 messages = generate_prediction_prompt(query_text, context_queries, target_metric)
-                prompt = tokenizer.apply_chat_template(
-                    messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
-                )
-                inputs = tokenizer(prompt, return_tensors="pt").to(llm.device)
-                input_length = inputs.input_ids.shape[1]
-
-                with torch.inference_mode():
-                    outputs = llm.generate(
-                        **inputs,
-                        max_new_tokens=10,
-                        temperature=0.1,
-                        do_sample=True,
-                        pad_token_id=tokenizer.eos_token_id
-                    )
-
-                generated_tokens = outputs[:, input_length:]
-                response_text = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)[0]
+                response_text = llm_backend.generate(messages)
                 return extract_weight(response_text)
 
             # Warmup (not timed) — primes CUDA kernels and any first-call caches.
