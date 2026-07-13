@@ -74,16 +74,14 @@ predictor (§3.3). On recovery specifically:
 
 We agree, and we ran additional experiments in the three-retriever setting. We fuse
 **BM25 + RM3 + Qwen3** (Qwen3 is the strongest dense retriever on every dataset; BM25 and RM3
-trade places), and re-run the two strongest k=2 methods against a k=3 RRF baseline. Statistical
-significance is a per-query paired t-test comparing each method to the equal-weight RRF baseline,
-which we selected for its robustness across sample sizes and findings from prior work
+trade places across datasets), and re-run two of the strongest query adaptive methods from the k=2 setting against a k=3 RRF baseline. [[We selected the passage conditioned ModernBERT weight predictor and XXX because they come from two different method tiers (describe each method tier)... or because of headroom coverage...]] Statistical significance is a per-query paired t-test comparing each method to the equal-weight RRF baseline, which we selected for its robustness across sample sizes and findings from prior work
 (Urbano et al., 2019, [arXiv:1905.11096](https://arxiv.org/abs/1905.11096);
 Ihemelandu and Ekstrand, 2023, [arXiv:2305.02461](https://arxiv.org/abs/2305.02461);
 Urbano, 2026, [arXiv:2604.25349](https://arxiv.org/abs/2604.25349)).
 
 | dataset | metric | k=3 RRF | k=3 query-adaptive (best) | best k=2 method | oracle ceiling k=2 → k=3 |
 |---|:--:|:--:|:--:|:--:|:--:|
-| ACORD | ndcg@10 | 0.132 | 0.148 | 0.159 | 0.231 → 0.244 |
+| ACORD | ndcg@10 | 0.132 | 0.148 [[add p-value here; you can re-order the rows too...]] | 0.159 | 0.231 → 0.244 |
 | NFCorpus | ndcg@10 | 0.384 | 0.398 (p<0.001) | 0.409 | 0.473 → 0.482 |
 | MSMARCO | mrr@10 | 0.247 | 0.340 (p<0.001) | 0.350 | 0.457 → 0.477 |
 | NQ | mrr@10 | 0.314 | 0.435 (p<0.001) | 0.447 | 0.549 → 0.578 |
@@ -92,9 +90,9 @@ Three takeaways follow. First, query-adaptive methods extend beyond k=2 and stil
 RRF (p < 0.001 on both large benchmarks). Second, the headroom grows with k: the per-query oracle
 ceiling rises when the third retriever is added (+0.009 to +0.029 absolute over the best k=2 pair),
 and the oracle−RRF gap is larger at k=3 than for any k=2 pair (e.g. NQ 0.264 vs ≤0.220,
-MSMARCO 0.230 vs ≤0.175), so the k=2 study is a lower bound on achievable headroom. Third,
+MSMARCO 0.230 vs ≤0.175), so the k=2 study is a lower bound on achievable headroom. [[Third,
 recovering that headroom is harder: the k=3 setting has ~5151 weight settings versus 101 at k=2, so
-the per-query optima scatter and no longer collapse into a compact, learnable interval.
+the per-query optima scatter and no longer collapse into a compact, learnable interval. <- try to reword this sentence to make it more clear.  Mention discrete step size of 0.01 creates ~5000 possible weight combinations with k=3.]]
 
 ---
 
@@ -117,6 +115,7 @@ interval analysis relative to this work in the related-work section.
 
 ## W4 — "Statistical significance testing was not performed."
 
+[[Add FDR]]
 We have added per-query significance testing of every fusion method against standard (unweighted)
 RRF using a **paired t-test**, with a **Bonferroni correction** over the family of
 128 tests (8 query-adaptive methods × 16 dataset–combinations; corrected α = 0.05/128).
