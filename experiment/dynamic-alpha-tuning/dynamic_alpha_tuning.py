@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import asyncio
+import time
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -201,6 +202,19 @@ async def get_llm_scores(llm_client, query_id, query_text, sparse_doc_text, dens
     return query_id, None, None
 
 
+async def _timed_get_llm_scores(llm_client, query_id, query_text, sparse_doc_text, dense_doc_text,
+                                 cache, cache_file, semaphore=None, failed_log_file=None,
+                                 max_retries=5, initial_delay=2):
+    """Wraps get_llm_scores to also report this query's own wall-clock latency."""
+    t0 = time.perf_counter()
+    query_id, sparse_score, dense_score = await get_llm_scores(
+        llm_client, query_id, query_text, sparse_doc_text, dense_doc_text,
+        cache, cache_file, semaphore, failed_log_file, max_retries, initial_delay,
+    )
+    latency_ms = (time.perf_counter() - t0) * 1000.0
+    return query_id, sparse_score, dense_score, latency_ms
+
+
 # ---------------------------------------------------------------------------
 # Core experiment runner
 # ---------------------------------------------------------------------------
@@ -277,20 +291,31 @@ async def run_dynamic_alpha(
     print(f"  Processing {len(query_inputs)} queries in {n_batches} batches (batch_size={batch_size}, concurrency={concurrency})...")
 
     llm_scores = {}
+    query_latencies = {}
+    query_text_by_id = {qid: qt for qid, qt, sd, dd in query_inputs}
     for i in tqdm(range(0, len(query_inputs), batch_size), desc=f"{dataset_name}/{combo}/{split}", total=n_batches):
         batch = query_inputs[i:i + batch_size]
         semaphore = asyncio.Semaphore(concurrency)
         batch_tasks = [
-            get_llm_scores(llm_client, qid, qt, sd, dd, cache, cache_file, semaphore, failed_log_file)
+            _timed_get_llm_scores(llm_client, qid, qt, sd, dd, cache, cache_file, semaphore, failed_log_file)
             for qid, qt, sd, dd in batch
         ]
         batch_results = await asyncio.gather(*batch_tasks)
-        for qid, s, d in batch_results:
+        for qid, s, d, latency_ms in batch_results:
             if s is not None and d is not None:
                 save_to_cache(cache_file, qid, s, d)
             llm_scores[qid] = (s, d)
+            query_latencies[qid] = latency_ms
+
+    print(
+        f"=======> Latency [{dataset_name}/{combo}] Per-query time — for #queries: {len(query_latencies)}, "
+        f"mean={np.mean(list(query_latencies.values())):.4f}ms, "
+        f"median={np.median(list(query_latencies.values())):.4f}ms, "
+        f"p95={np.percentile(list(query_latencies.values()), 95):.4f}ms"
+    )
 
     fused_rows = []
+    predictions = []
 
     for query_id in tqdm(all_query_ids, desc=f"{dataset_name}/{combo}/{split}"):
         sparse_q = sparse_results.get(query_id, {})
@@ -304,6 +329,15 @@ async def run_dynamic_alpha(
             continue
         alpha = compute_alpha(sparse_score, dense_score)
 
+        predictions.append({
+            "query_id": query_id,
+            "query_text": query_text_by_id.get(query_id, ""),
+            "sparse_score": sparse_score,
+            "dense_score": dense_score,
+            "predicted_alpha": alpha,
+            "latency_ms": query_latencies.get(query_id),
+        })
+
         all_docs = set(norm_sparse.keys()) | set(norm_dense.keys())
         doc_final_scores = {}
         for doc_id in all_docs:
@@ -314,6 +348,12 @@ async def run_dynamic_alpha(
         ranked = sorted(doc_final_scores.items(), key=lambda x: x[1], reverse=True)
         for rank, (doc_id, score) in enumerate(ranked, 1):
             fused_rows.append((query_id, doc_id, rank, score))
+
+    predictions_dir = os.path.join(output_dir, "predictions")
+    os.makedirs(predictions_dir, exist_ok=True)
+    predictions_path = os.path.join(predictions_dir, f"{dataset_name}_{split}_{combo}_predictions.csv")
+    pd.DataFrame(predictions).to_csv(predictions_path, index=False)
+    print(f"  Per-query predictions saved to: {predictions_path}")
 
     os.makedirs(output_dir, exist_ok=True)
     run_id = f"dynamic_alpha_{model_name}"
