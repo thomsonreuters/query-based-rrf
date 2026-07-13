@@ -30,7 +30,6 @@ dependencies = [
     "rank-bm25",
     "bm25s",
     "mistral-common",
-    "labs-pl-common",
     "boto3>=1.42.80",
 ]
 
@@ -39,6 +38,3 @@ flash-attn = ["torch"]
 
 [tool.uv]
 no-build-isolation-package = ["flash-attn"]
-
-[tool.uv.sources]
-labs-pl-common = { path = "../labs-pl_skills/packages/labs-pl-common" }
