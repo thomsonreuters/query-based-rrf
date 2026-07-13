@@ -465,7 +465,7 @@ Scores are min-max normalized per query per retriever before fusion.
 
 | Backend | Details |
 |---------|---------|
-| `proxy` | TR internal LLM proxy (`labs_pl_common`), GPT-5.2 |
+| `proxy` | internal LLM proxy, GPT-5.2 |
 | `bedrock` | AWS Bedrock, `qwen.qwen3-32b-v1:0` via boto3 |
 
 Switch backend by setting `BACKEND` in `main()`.
