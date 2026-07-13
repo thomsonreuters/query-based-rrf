@@ -34,6 +34,28 @@ Usage:
     python 3-query-features-analysis.py --datasets msmarco nq --methods all
     python 3-query-features-analysis.py --datasets msmarco --methods 01 02 03 04 05 06 09 10 --rare-threshold 3
     python 3-query-features-analysis.py --datasets msmarco --output-root /path/to/results
+    python 3-query-features-analysis.py --datasets acord-entire-corpus --with-ambiguity-llm
+
+--with-ambiguity-llm adds an LLM-scored ambiguity category (0-8, via
+utils.label_queries -- see utils.py for the CLAMBER-derived prompt) computed
+ONLY for the queries in top_bottom_predictions/ (not the full sorted_scores
+corpus, since LLM calls cost money/time unlike the local text features
+above). Results are cached in {dataset}_ambiguity_labels.csv so re-running
+only labels new queries. Adds a binary `is_ambiguous` column to the normal
+point-biserial feature set. `ambiguity_category` itself is a 9-level nominal
+variable, not continuous/binary, so it's scored with Cramer's V + chi-square
+instead of point-biserial r -- its row lands in the same
+{dataset}_feature_correlations.csv, with the point-biserial-only columns
+(is_binary, r, p_value_pearson, p_value_fisher_exact, odds_ratio) blank for
+that row, and the categorical-only columns (cramers_v, chi2, dof) blank for
+every other row.
+
+Adding a new feature later: continuous/binary features go in FEATURE_COLUMNS
+(compute_correlations scores them via point-biserial r); nominal/categorical
+features go in CATEGORICAL_FEATURE_COLUMNS (compute_categorical_correlations
+scores them via Cramer's V). Both lists are static registries -- a feature
+column missing from df (e.g. an optional one computed only under some flag)
+is silently skipped, so main()'s loop doesn't need special-casing per feature.
 """
 import argparse
 import math
@@ -42,7 +64,9 @@ from collections import Counter
 from pathlib import Path
 
 import pandas as pd
-from scipy.stats import fisher_exact, pearsonr
+from scipy.stats import chi2_contingency, fisher_exact, pearsonr
+
+import utils
 
 ROOT = Path(__file__).resolve().parent
 SORTED_DIRNAME = "sorted_scores"
@@ -123,6 +147,86 @@ def build_dataset_corpus(dataset: str, method_dirs, sorted_dir: Path) -> pd.Data
     return pd.DataFrame(list(texts.items()), columns=["query_id", "query_text"])
 
 
+# ---------------------------------------------------------------------------
+# LLM ambiguity feature (opt-in via --with-ambiguity-llm). Scoped to only the
+# queries in top_bottom_predictions/ -- unlike the corpus above, LLM calls
+# cost money/time, so this does not touch the full sorted_scores corpus.
+# ---------------------------------------------------------------------------
+
+def gather_top_bottom_queries(dataset: str, method_dirs) -> pd.DataFrame:
+    """Union of unique (query_id, query_text) across method_dirs' top_bottom_predictions
+    files for `dataset`."""
+    texts = {}
+    for method_dir in method_dirs:
+        path = find_top_bottom_file(method_dir, dataset)
+        if path is None:
+            continue
+        df = pd.read_csv(path, usecols=["query_id", "query_text"])
+        for qid, text in zip(df["query_id"], df["query_text"]):
+            texts.setdefault(qid, text)
+    return pd.DataFrame(list(texts.items()), columns=["query_id", "query_text"])
+
+
+def load_or_compute_ambiguity_labels(
+    dataset: str, queries_df: pd.DataFrame, output_dir: Path,
+    model_name: str, concurrency: int, chunk_size: int,
+) -> pd.DataFrame:
+    """Returns queries_df's query_ids mapped to an LLM-scored ambiguity_category (0-8),
+    caching results in {dataset}_ambiguity_labels.csv so re-running only labels queries
+    not already validly cached. Each chunk is appended to the cache as soon as it
+    completes (see utils.label_queries' on_chunk), so a failure partway through a large
+    run doesn't lose already-completed labels."""
+    cache_path = output_dir / f"{dataset}_ambiguity_labels.csv"
+    if cache_path.exists():
+        cached = pd.read_csv(cache_path)
+        cached_valid = cached[cached["ambiguity_category"].notna()]
+    else:
+        cached_valid = pd.DataFrame(columns=["query_id", "query_text", "ambiguity_category", "raw_response"])
+
+    already_done = set(cached_valid["query_id"])
+    remaining = queries_df[~queries_df["query_id"].isin(already_done)]
+    print(f"[{dataset}] ambiguity labels: {len(already_done)} cached, {len(remaining)} to label")
+
+    if remaining.empty:
+        return cached_valid.set_index("query_id")[["ambiguity_category"]]
+
+    accumulated = [cached_valid]
+
+    def on_chunk(chunk_result: pd.DataFrame):
+        accumulated.append(chunk_result)
+        pd.concat(accumulated, ignore_index=True).to_csv(cache_path, index=False)
+        print(f"[{dataset}] ambiguity labels: checkpointed {len(chunk_result)} more "
+              f"({sum(len(c) for c in accumulated)} total)")
+
+    utils.label_queries(remaining, model_name=model_name, concurrency=concurrency,
+                         chunk_size=chunk_size, on_chunk=on_chunk)
+
+    final = pd.read_csv(cache_path)
+    return final[final["ambiguity_category"].notna()].set_index("query_id")[["ambiguity_category"]]
+
+
+def compute_categorical_correlation(df: pd.DataFrame, feature_col: str, alpha: float,
+                                     label_col="prediction_quality") -> dict:
+    """Cramer's V + chi-square test of independence between a nominal feature
+    (e.g. ambiguity_category, a 9-level category, not continuous/binary) and
+    the good/weak label. Not point-biserial r -- that statistic assumes an
+    ordinal/continuous feature, which a set of unordered categories is not."""
+    sub = df[[feature_col, label_col]].dropna()
+    if sub.empty or sub[feature_col].nunique() < 2 or sub[label_col].nunique() < 2:
+        return {"feature": feature_col, "cramers_v": float("nan"), "p_value_categorical": float("nan"),
+                "chi2": float("nan"), "dof": float("nan"), "n": len(sub),
+                f"significant_p<{alpha}": False}
+
+    table = pd.crosstab(sub[feature_col], sub[label_col])
+    chi2, p_value, dof, _ = chi2_contingency(table)
+    n = table.values.sum()
+    min_dim = min(table.shape) - 1
+    cramers_v = (chi2 / (n * min_dim)) ** 0.5 if min_dim > 0 else float("nan")
+    return {"feature": feature_col, "cramers_v": cramers_v, "p_value_categorical": p_value,
+            "chi2": chi2, "dof": dof, "n": int(n),
+            f"significant_p<{alpha}": bool(pd.notna(p_value) and p_value < alpha)}
+
+
 def tokenize(text: str):
     return TOKEN_RE.findall(str(text).lower())
 
@@ -197,12 +301,21 @@ def ends_with_question_mark(text):
     return str(text).strip().endswith("?")
 
 
+# Continuous/binary features, scored by compute_correlations() (point-biserial).
+# To add a new one: compute it (in compute_query_features, or merge its own
+# frame in main()), then add its column name here -- nothing else changes.
 FEATURE_COLUMNS = [
     "word_count", "char_count", "avg_word_length", "is_wh_question", "has_digit",
     "n_digit_tokens", "content_word_frac", "avg_rarity", "frac_rare_words",
     "has_singleton_word", "ambiguity_score", "n_entities", "has_entity",
     "n_proper_nouns", "ends_with_question_mark",
+    "is_ambiguous",  # derived from ambiguity_category (see load_or_compute_ambiguity_labels)
 ]
+
+# Nominal (unordered-category) features, scored by compute_categorical_correlations()
+# (Cramer's V + chi-square, not point-biserial -- see compute_categorical_correlation's
+# docstring for why). Same registry pattern as FEATURE_COLUMNS.
+CATEGORICAL_FEATURE_COLUMNS = ["ambiguity_category"]
 
 
 def compute_query_features(corpus_df: pd.DataFrame, rare_threshold: int) -> pd.DataFrame:
@@ -263,10 +376,15 @@ def compute_correlations(df: pd.DataFrame, feature_cols, label_col="prediction_q
     the phi coefficient. NaN r/p when a feature has no variance or too few
     non-null rows. Binary features additionally get a Fisher's exact p-value
     and odds ratio (more reliable than the Pearson t-approximation when a
-    binary feature is rare), computed alongside, not instead of, Pearson."""
+    binary feature is rare), computed alongside, not instead of, Pearson.
+    Columns in feature_cols not present in df are silently skipped -- lets
+    the caller pass a static registry regardless of which optional features
+    were actually computed for this run."""
     y = (df[label_col] == positive_label).astype(float)
     rows = []
     for feat in feature_cols:
+        if feat not in df.columns:
+            continue
         x = df[feat].astype(float)
         mask = x.notna() & y.notna()
         n = int(mask.sum())
@@ -298,11 +416,26 @@ def compute_correlations(df: pd.DataFrame, feature_cols, label_col="prediction_q
 def compute_group_means(df: pd.DataFrame, feature_cols, label_col="prediction_quality") -> pd.DataFrame:
     """Raw per-feature mean (a rate, for binary features) split by label group --
     gives the direction/magnitude behind each r, since a correlation coefficient
-    alone doesn't show the underlying values."""
-    means = df.groupby(label_col)[feature_cols].mean().T
+    alone doesn't show the underlying values. Columns not present in df are
+    silently skipped, same as compute_correlations."""
+    present_cols = [c for c in feature_cols if c in df.columns]
+    means = df.groupby(label_col)[present_cols].mean().T
     means.index.name = "feature"
     means["diff (weak - good)"] = means.get("weak_prediction", float("nan")) - means.get("good_prediction", float("nan"))
     return means.reset_index()
+
+
+def compute_categorical_correlations(df: pd.DataFrame, feature_cols, alpha=0.05,
+                                      label_col="prediction_quality") -> pd.DataFrame:
+    """Cramer's V + chi-square for each nominal feature in feature_cols that's
+    present in df (see compute_categorical_correlation for the per-feature
+    statistic and why it differs from compute_correlations' point-biserial r).
+    Same registry-driven, skip-if-absent pattern as compute_correlations."""
+    rows = [
+        compute_categorical_correlation(df, feat, alpha, label_col=label_col)
+        for feat in feature_cols if feat in df.columns
+    ]
+    return pd.DataFrame(rows)
 
 
 # ---------------------------------------------------------------------------
@@ -324,6 +457,15 @@ def main():
                          help=f"Directory containing '{SORTED_DIRNAME}/' and '{TOP_BOTTOM_DIRNAME}/' (steps 1 & 2's "
                               f"output) and under which '{OUTPUT_DIRNAME}/' is created. "
                               f"Default: this script's directory.")
+    parser.add_argument("--with-ambiguity-llm", action="store_true",
+                         help="Add an LLM-scored ambiguity_category feature (0-8, CLAMBER-derived prompt), "
+                              "computed only for queries in top_bottom_predictions/. Default: off.")
+    parser.add_argument("--ambiguity-model", default="gpt-4o-mini", choices=list(utils.MODEL_CHOICES),
+                         help="Model used for ambiguity labeling. Default: gpt-4o-mini.")
+    parser.add_argument("--ambiguity-concurrency", type=int, default=5,
+                         help="Concurrent LLM calls in flight. Default: 5.")
+    parser.add_argument("--ambiguity-chunk-size", type=int, default=50,
+                         help="Queries per checkpointed chunk. Default: 50.")
     args = parser.parse_args()
     output_root = args.output_root.resolve()
     sorted_dir = output_root / SORTED_DIRNAME
@@ -353,6 +495,14 @@ def main():
         print(f"[{dataset}] corpus size: {len(corpus_df)} unique queries")
         feats_df = compute_query_features(corpus_df, args.rare_threshold)
 
+        ambiguity_labels_df = None
+        if args.with_ambiguity_llm:
+            top_bottom_queries = gather_top_bottom_queries(dataset, method_dirs)
+            ambiguity_labels_df = load_or_compute_ambiguity_labels(
+                dataset, top_bottom_queries, output_dir,
+                args.ambiguity_model, args.ambiguity_concurrency, args.ambiguity_chunk_size,
+            )
+
         result_frames = []
         means_frames = []
         pooled_parts = []
@@ -360,8 +510,16 @@ def main():
             path = find_top_bottom_file(method_dir, dataset)
             df = pd.read_csv(path)
             df = df.merge(feats_df, on="query_id", how="left")
+            if ambiguity_labels_df is not None:
+                df = df.merge(ambiguity_labels_df, on="query_id", how="left")
+                df["is_ambiguous"] = df["ambiguity_category"].apply(
+                    lambda v: float("nan") if pd.isna(v) else float(v != 0)
+                )
 
-            corr = compute_correlations(df, FEATURE_COLUMNS, alpha=args.alpha)
+            corr = pd.concat([
+                compute_correlations(df, FEATURE_COLUMNS, alpha=args.alpha),
+                compute_categorical_correlations(df, CATEGORICAL_FEATURE_COLUMNS, alpha=args.alpha),
+            ], ignore_index=True)
             corr.insert(0, "method", method_dir.name)
             corr.insert(1, "dataset", dataset)
             result_frames.append(corr)
@@ -374,7 +532,10 @@ def main():
             pooled_parts.append(df)
 
         pooled_df = pd.concat(pooled_parts, ignore_index=True)
-        pooled_corr = compute_correlations(pooled_df, FEATURE_COLUMNS, alpha=args.alpha)
+        pooled_corr = pd.concat([
+            compute_correlations(pooled_df, FEATURE_COLUMNS, alpha=args.alpha),
+            compute_categorical_correlations(pooled_df, CATEGORICAL_FEATURE_COLUMNS, alpha=args.alpha),
+        ], ignore_index=True)
         pooled_corr.insert(0, "method", "ALL_METHODS_POOLED")
         pooled_corr.insert(1, "dataset", dataset)
         result_frames.append(pooled_corr)

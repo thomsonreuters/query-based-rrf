@@ -32,6 +32,12 @@ means each step writes to (and reads from) its own default location -- this
 script's directory. Set it to a Path to relocate the whole sorted_scores/,
 top_bottom_predictions/, query_features_analysis/ tree elsewhere.
 
+`with_ambiguity_llm=True` adds step 3's LLM-scored ambiguity_category feature
+(see utils.py for the prompt). It's real, metered API cost/time -- computed
+only for queries in top_bottom_predictions/, and cached in
+query_features_analysis/{dataset}_ambiguity_labels.csv, so re-running the
+pipeline only labels queries not already cached.
+
 Usage:
     python error-analysis-pipeline.py                 # run all 3 steps
     python error-analysis-pipeline.py --dry-run        # print commands only
@@ -46,6 +52,8 @@ import time
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import List, Optional
+
+import utils
 
 ROOT = Path(__file__).resolve().parent
 
@@ -97,6 +105,10 @@ class PipelineConfig:
     # Step 3 (3-query-features-analysis.py)
     step3_rare_threshold: int = 3
     step3_alpha: float = 0.05
+    with_ambiguity_llm: bool = False  # real API cost/time -- see module docstring
+    ambiguity_model: str = "gpt-5-mini"
+    ambiguity_concurrency: int = 5
+    ambiguity_chunk_size: int = 50
 
     def resolved_output_root(self) -> Path:
         return self.output_root if self.output_root is not None else ROOT
@@ -124,16 +136,27 @@ class PipelineConfig:
             raise ValueError(f"config.step3_rare_threshold must be >= 0, got {self.step3_rare_threshold}.")
         if not (0 < self.step3_alpha < 1):
             raise ValueError(f"config.step3_alpha should be in (0, 1), got {self.step3_alpha}.")
+        if self.ambiguity_model not in utils.MODEL_CHOICES:
+            raise ValueError(f"config.ambiguity_model must be one of {list(utils.MODEL_CHOICES)}, "
+                              f"got {self.ambiguity_model!r}.")
+        if self.ambiguity_concurrency < 1:
+            raise ValueError(f"config.ambiguity_concurrency must be >= 1, got {self.ambiguity_concurrency}.")
+        if self.ambiguity_chunk_size < 1:
+            raise ValueError(f"config.ambiguity_chunk_size must be >= 1, got {self.ambiguity_chunk_size}.")
 
 
 CONFIG = PipelineConfig(
-    datasets=list(ALL_DATASETS),
-    methods=None,
+    datasets=["msmarco", "nq"],
+    methods=["02", "06", "10"],
     output_root=None,
     step1_ascending=False,
     step2_pct=5.0,
     step3_rare_threshold=3,
     step3_alpha=0.05,
+    with_ambiguity_llm=True,
+    ambiguity_model="gpt-5-mini",
+    ambiguity_concurrency=5,
+    ambiguity_chunk_size=50,
 )
 
 
@@ -172,6 +195,11 @@ def build_step3_cmd(config: PipelineConfig) -> List[str]:
     cmd += ["--rare-threshold", str(config.step3_rare_threshold)]
     cmd += ["--alpha", str(config.step3_alpha)]
     cmd += _output_root_args(config)
+    if config.with_ambiguity_llm:
+        cmd += ["--with-ambiguity-llm"]
+        cmd += ["--ambiguity-model", config.ambiguity_model]
+        cmd += ["--ambiguity-concurrency", str(config.ambiguity_concurrency)]
+        cmd += ["--ambiguity-chunk-size", str(config.ambiguity_chunk_size)]
     return cmd
 
 
