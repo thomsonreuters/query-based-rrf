@@ -57,11 +57,11 @@ We thank Reviewer reaf for the careful reading and for recognizing the paper's s
 By design, the paper is a diagnostic, structural study rather than a proposal for a single new
 predictor (§3.3). On recovery specifically:
 
-- The ≤25% figure averaged each score only over queries with a *nonzero achievable metric* —
+- The ≤25% figure averaged each score only over queries with a nonzero achievable metric —
   i.e. queries where some fusion weight can surface a relevant document, the subset where the
-  weight has any room to help. Following the more common practice, we now report over all queries
+  weight has any room to help. We updated our reporting to include all queries
   rather than only those with a non-empty optimal-weight set. Under this evaluation the recovered
-  headroom is substantially higher: query-adaptive methods reach up to **61% on NQ (RM3+Qwen3)**
+  headroom is substantially higher: query-adaptive methods reach up to 61% on NQ (RM3+Qwen3)
   and exceed 25% on several MSMARCO/NQ configurations.
 - Headroom nonetheless persists on the harder configurations, and no method reaches the oracle,
   illustrating the difficulty of per-query fusion-weight prediction.
