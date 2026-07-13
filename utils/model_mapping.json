@@ -1,23 +1,22 @@
 {
-  "standard rrf":                                        "rrf",
-  "mean optimal weight":                                 "mow",
-  "DAT - qwen3":                                         "DAT-qwen3",
-  "DAT - gpt5.2":                                        "DAT-gpt5.2",
-  "DAT - ministral3":                                    "DAT-minstral3",
+  "standard rrf":                                       "rrf",
+  "mean optimal weight":                                "mow",
 
-  "ridge regression mean best weight":                   "ridge regression",
+  "DAT - qwen3":                                        "DAT-qwen3",
+  "DAT - ministral3":                                   "DAT-ministral3",
+  "DAT-minstral3":                                      "DAT-ministral3",
 
-  "roberta mean best weight":                            "roberta regression",
-  "roberta interval weight":                             "roberta interval",
+  "ridge regression mean best weight":                  "ridge regression",
 
-  "modern bert mean best weight":                        "moderbert regression",
-  "modern bert interval weight":                         "moderbert interval",
-  "modern bert interval weight metrics":                 "moderbert interval",
-  "modern bert passage conditioned interval weight":     "dat-moderbert-interval",
-  "moderbert passage cond":                             "dat-moderbert-interval",
+  "roberta interval weight":                            "roberta interval",
 
-  "llm fs qwen3 mean best weight":                       "llm-fs-qwen-3-mbw",
-  "llm fs qwen3 interval weight":                        "llm-fs-qwen-3-interval",
-  "llm fs ministral mean best weight":                   "llm-fs-mistral-mbw",
-  "llm fs ministral interval weight":                    "llm-fs-mistral-3-interval"
+  "modern bert interval weight":                        "moderbert interval",
+  "modern bert interval weight metrics":                "moderbert interval",
+  "modern bert passage conditioned interval weight":    "moderbert passage cond",
+
+  "llm fs qwen3 interval weight":                       "llm-fs-qwen3 interval",
+  "llm-fs-qwen-3-interval":                             "llm-fs-qwen3 interval",
+
+  "llm fs ministral interval weight":                   "llm-fs-ministral interval",
+  "llm-fs-mistral-3-interval":                          "llm-fs-ministral interval"
 }

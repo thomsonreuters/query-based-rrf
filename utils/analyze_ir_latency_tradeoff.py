@@ -7,10 +7,9 @@ Steps performed internally:
   2. Aggregate metric CSV(s)    → (dataset, model, <metric>)
   3. Apply model-name mapping to both
   4. Exclude unwanted models from both
-  5. Fill missing llm-fs-* combo rows with estimated latency
-  6. Aggregate timing           → results/timing_aggregated.csv
-  7. Inner-join timing × metrics → results/combined_results.csv
-  8. Generate a 2×2 tradeoff grid (one subplot per dataset) → results/plots/tradeoff_all.svg/pdf
+  5. Aggregate timing           → results/timing_aggregated.csv
+  6. Inner-join timing × metrics → results/combined_results.csv
+  7. Generate a 2×2 tradeoff grid (one subplot per dataset) → results/plots/tradeoff_all.svg/pdf
 
 Usage:
     python utils/analyze_ir_latency_tradeoff.py \\
@@ -35,7 +34,6 @@ from aggregate_latency import (
     filter_to_valid_combos as filter_timing,
     aggregate_over_combos,
     sort_by_dataset_then_model,
-    VALID_COMBOS,
 )
 from aggregate_metrics import (
     load_and_validate as load_metrics,
@@ -46,11 +44,6 @@ from plot_tradeoff import plot_tradeoff_grid
 
 # Models excluded from both timing and metrics before any processing.
 EXCLUDED_MODELS = {"DAT-gpt5.2"}
-
-# Estimated per-query latency (ms) used to fill missing combo rows for llm-fs-* models.
-# Replace with measured values once timing is complete.
-LLM_FS_ESTIMATED_LATENCY_MS = 269.0
-LLM_FS_PREFIX = "llm-fs-"
 
 # Per-dataset display names and metric labels used in the plots.
 DATASET_DISPLAY = {
@@ -76,58 +69,6 @@ def prepare_timing(timing_path: str) -> pd.DataFrame:
     df = load_timing(timing_path)
     df = build_combo_column(df)
     df = filter_timing(df)
-    return df
-
-
-def fill_llm_fs_timing(timing_df: pd.DataFrame, metrics_df: pd.DataFrame) -> pd.DataFrame:
-    """
-    For llm-fs-* models, replace zero-latency rows and add missing combo rows with
-    LLM_FS_ESTIMATED_LATENCY_MS so the combo average is computed over all 4 combos
-    using only real or estimated values — never zeros.
-
-    Datasets to fill for are taken from metrics_df, ensuring models entirely absent
-    from timing still get the correct per-dataset rows.
-    """
-    df = timing_df.copy()
-
-    # Replace 0ms rows for llm-fs-* models with the estimated latency.
-    llm_fs_mask = df["model"].str.startswith(LLM_FS_PREFIX) & (df["avg latency (ms)"] == 0)
-    n_replaced = llm_fs_mask.sum()
-    if n_replaced:
-        df.loc[llm_fs_mask, "avg latency (ms)"] = LLM_FS_ESTIMATED_LATENCY_MS
-        print(
-            f"          replaced {n_replaced} zero-latency llm-fs-* row(s) "
-            f"with {LLM_FS_ESTIMATED_LATENCY_MS} ms (estimated)",
-            file=sys.stderr,
-        )
-
-    # Add rows for combos entirely absent from the timing sheet.
-    llm_fs_models = [m for m in metrics_df["model"].unique() if m.startswith(LLM_FS_PREFIX)]
-    datasets = metrics_df["dataset"].unique().tolist()
-    rows = []
-    for model in llm_fs_models:
-        for dataset in datasets:
-            existing = set(
-                df.loc[(df["model"] == model) & (df["dataset"] == dataset), "combo"]
-            )
-            for combo in VALID_COMBOS - existing:
-                sparse, dense = combo.split("_vs_")
-                rows.append({
-                    "model": model, "dataset": dataset,
-                    "sparse": sparse, "dense": dense, "combo": combo,
-                    "avg latency (ms)": LLM_FS_ESTIMATED_LATENCY_MS,
-                    "total time (ms)": float("nan"),
-                    "infra": "", "num of queries": float("nan"), "num of param": "",
-                })
-
-    if rows:
-        print(
-            f"          added {len(rows)} missing llm-fs-* combo row(s) "
-            f"with {LLM_FS_ESTIMATED_LATENCY_MS} ms (estimated)",
-            file=sys.stderr,
-        )
-        df = pd.concat([df, pd.DataFrame(rows)], ignore_index=True)
-
     return df
 
 
@@ -247,9 +188,6 @@ def main() -> None:
     metrics_out = results_dir / "metrics_aggregated.csv"
     metrics_df.to_csv(metrics_out, index=False)
     print(f"          saved → {metrics_out}")
-
-    # Fill any missing llm-fs-* combo rows before averaging over combos.
-    timing_raw = fill_llm_fs_timing(timing_raw, metrics_df)
 
     timing_df = aggregate_over_combos(timing_raw)[["dataset", "model", "avg latency (ms)"]]
     timing_out = results_dir / "timing_aggregated.csv"

@@ -3,9 +3,9 @@
 Aggregate retrieval-metric CSVs into one row per (dataset, model).
 
 Input CSVs (one per dataset) must have columns:
-    Method, Dataset, Split, Sparse, Dense, <metric@5>, <metric@10>
+    <index>, Method, Dataset, Split, Sparse, Dense, <metric@5>, <metric@10>
 
-The 7th column (index 6) is used as the metric — either NDCG@10 or MRR@10.
+The 8th column (index 7) is used as the metric — either NDCG@10 or MRR@10.
 Rows are averaged over the four retriever combos per (Dataset, Method).
 
 Output columns: dataset, model, <metric_name>
@@ -51,7 +51,7 @@ def load_and_validate(path: str) -> tuple[pd.DataFrame, str]:
         expected = DATASET_EXPECTED_METRIC.get(dataset)
         if expected is not None and metric_col != expected:
             sys.exit(
-                f"ERROR [{path}]: column 7 is '{metric_col}' but dataset "
+                f"ERROR [{path}]: column 6 is '{metric_col}' but dataset "
                 f"'{dataset}' expects '{expected}' — check column order."
             )
 
