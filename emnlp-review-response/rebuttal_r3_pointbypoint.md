@@ -113,9 +113,7 @@ The gains from per-query weighting are real, not noise. On both large benchmarks
 We thank the reviewer for raising this. We are committed to full reproducibility. An
 anonymized repository is available for this rebuttal at:
 
-**[ANONYMIZED REPO LINK — TODO]**
-
-and the repository will be made public upon acceptance. 
+**[https://anonymous.4open.science/r/query-based-rrf-BCC8](https://anonymous.4open.science/r/query-based-rrf-BCC8)**
 
 ---
 
@@ -141,6 +139,6 @@ per-query optimum is not predictable from the query alone.
 | NFCorpus | (term rarity, opposite sign) | −0.17 | +0.05 |
 | ACORD | query length | +0.28¹ | +0.08 |
 
-<sub>¹ ACORD has only ~57 queries, so its larger coefficient is high-variance. Correlations are
+ACORD has only 57 queries, so its larger coefficient is high-variance. Correlations are
 point-biserial (effect sizes); with the large query counts, significance is not the discriminating
-factor — the effect sizes are.</sub>
+factor — the effect sizes are.
