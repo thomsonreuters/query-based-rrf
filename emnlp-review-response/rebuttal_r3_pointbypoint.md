@@ -43,9 +43,7 @@
 ---
 
 We thank Reviewer TX8Z for the positive assessment and for finding the paper well written and the
-experimental design thorough. We address each point below, in the order raised. New experiments
-(significance testing and the k>2 study) are added to the revision, with full tables in the
-appendix.
+experimental design thorough. We address each point below, in the order raised. 
 
 ---
 
@@ -59,37 +57,54 @@ figures so the results are readable throughout.
 
 ## W2 — "Metric works for a single sparse–dense pair only; 3+ systems make grid search combinatorially expensive."
 
-We thank the reviewer for this point and agree that real systems increasingly combine more than two
-retrievers. We ran additional experiments on the multi-retriever simplex, fusing
-**BM25 + RM3 + Qwen3** (k=3) and re-running our two strongest k=2 methods against a k=3 RRF
-baseline. Query-adaptive weighting continues to beat RRF on both large benchmarks (MSMARCO and NQ,
-Wilcoxon p < 0.001), and the per-query oracle ceiling *rises* when the third retriever is added
-(+0.009 to +0.029 absolute over the best k=2 pair) — so the k=2 study is a lower bound on
-achievable headroom. The reviewer's point about combinatorial cost is exactly right and is itself
-part of the finding: the k=3 simplex has ~5151 weight settings versus 101 at k=2 (growing as
-O(g^{k−1})), so per-query optima scatter and no longer collapse into a compact learnable interval,
-which is why recovering the headroom gets harder as retrievers are added. Full k=3 tables are added
-to the appendix.
+We agree, and we ran additional experiments in the three-retriever setting. We fuse
+BM25 + RM3 + Qwen3 (Qwen3 is the strongest dense retriever on every dataset; BM25 and RM3
+trade places across datasets), and re-run two of the strongest query adaptive methods from the k=2 setting against a k=3 RRF baseline. We select two methods that were the strongest query-adaptive predictors at k=2 and that sit in different tiers of our decision framework (§6): the passage-conditioned ModernBERT predictor (Tier 2, a fine-tuned transformer encoder running on GPU at ~8 ms/query, conditioned on each retriever's top-1 passage) and the few-shot Ministral predictor (Tier 3, in-context LLM inference at ~225 ms/query, conditioned on the query alone). This pairs the strongest fine-tuned discriminative encoder with the strongest generative LLM predictor, spanning both ends of the cost–adaptivity spectrum rather than re-testing two variants of the same approach. These two also recover the most headroom at k=2: across the 16 k=2 configurations they achieve the best score in 10, including 7 of the 8 columns on the large MSMARCO and NQ benchmarks, so they are the natural candidates to carry into the k=3 setting. Statistical significance is a per-query paired t-test comparing each method to the equal-weight RRF baseline, which we selected for its robustness across sample sizes and findings from prior work
+(Urbano et al., 2019, [arXiv:1905.11096](https://arxiv.org/abs/1905.11096);
+Ihemelandu and Ekstrand, 2023, [arXiv:2305.02461](https://arxiv.org/abs/2305.02461);
+Urbano, 2026, [arXiv:2604.25349](https://arxiv.org/abs/2604.25349)).
 
-See our reply to Reviewer reaf for the full breakdown.
+| dataset | metric | k=3 RRF | k=3 query-adaptive (best) | best k=2 method | oracle ceiling k=2 → k=3 |
+|---|:--:|:--:|:--:|:--:|:--:|
+| NFCorpus | ndcg@10 | 0.384 | 0.398 (p<0.001) | 0.409 | 0.473 → 0.482 |
+| MSMARCO | mrr@10 | 0.247 | 0.340 (p<0.001) | 0.350 | 0.457 → 0.477 |
+| NQ | mrr@10 | 0.314 | 0.435 (p<0.001) | 0.447 | 0.549 → 0.578 |
+| ACORD | ndcg@10 | 0.132 | 0.148 (p=0.21) | 0.159 | 0.231 → 0.244 |
+
+Three takeaways follow. First, query-adaptive methods extend beyond k=2 and still beat standard
+RRF (p < 0.001 on both large benchmarks). Second, the headroom grows with k: the per-query oracle
+ceiling rises when the third retriever is added (+0.009 to +0.029 absolute over the best k=2 pair),
+and the oracle−RRF gap is larger at k=3 than for any k=2 pair (e.g. NQ 0.264 vs ≤0.220,
+MSMARCO 0.230 vs ≤0.175), so the k=2 study is a lower bound on achievable headroom. Third,
+recovering that headroom becomes harder as k grows, because the space of candidate weight settings
+explodes. With a grid step size of 0.01, the k=2 setting affords 101 possible combinations. The k=3
+setting has 5,151 possible settings. Predicting the per query optima thus becomes more challenging.
+Because RM3 and BM25 are similar retrievers, it may well be the case that the simpler k=2 setting
+with BM25 and Qwen captures most of the range of effective fusion weights predictable from the
+query, and adding the third retriever provides little value. In practice most hybrid search systems
+combine two retrievers that focus on lexical and semantic matching respectively.
 
 ---
 
 ## W3 — "Reports average performance but no statistical significance testing between methods."
 
-We thank the reviewer for pointing out the missing significance analysis; we agree it is important
-for judging whether the smaller gains are meaningful. We have added per-query significance testing
-of every fusion method against standard RRF using the **Wilcoxon signed-rank test**,
-with a **Bonferroni correction** over the family of 128 tests (8 query-adaptive methods × 16
-dataset–combinations; corrected α = 0.05/128 ≈ 3.9×10⁻⁴). Of the 128 comparisons, **78 are
-significant at α = 0.05 and 63 survive Bonferroni**. On the two large benchmarks nearly every
-improvement over RRF is significant and survives correction (MSMARCO 29/32, NQ 29/32); on the
-small collections the gains are directionally positive but mostly do not reach significance at that
-scale (NFCorpus 5/32, ACORD 0/32). So the small-looking gains are consistent per query rather than
-noise on the datasets with enough queries to test. Full per-query tables (before and after
-Bonferroni) are added to the appendix.
+We have added per-query significance testing of every fusion method against standard (unweighted)
+RRF using a paired t-test over 128 tests (8 query-adaptive methods × 16
+dataset–combinations). We control the false discovery rate via the Benjamini–Hochberg procedure
+(Benjamini & Hochberg, 1995), following recent work showing FDR control is appropriate for the
+many-comparison setting typical in IR system evaluation (Otero et al., 2025).
 
-See our reply to Reviewer reaf for the full breakdown.
+Of the 128 comparisons, 75 are significant at α = 0.05 and 74 remain significant after FDR
+correction (method significantly better than RRF):
+
+| dataset | eval queries | sig. improvements over RRF (of 32) | survive FDR (q ≤ 0.05) |
+|---|:--:|:--:|:--:|
+| MSMARCO | 6,980 | 31 / 32 | 31 / 32 |
+| NQ | 2,893 | 30 / 32 | 30 / 32 |
+| NFCorpus | 323 | 10 / 32 | 10 / 32 |
+| ACORD | 57 | 4 / 32 | 3 / 32 |
+
+The gains from per-query weighting are real, not noise. On both large benchmarks (MSMARCO, NQ) nearly every improvement over RRF survives FDR correction, including the small-looking gains. On the very small ACORD (57 test and 51 train queries) only 3 of 32 reach significance under FDR, which we might expect for such a small dataset. We additionally verified that many query-adaptive methods beat not just 50-50 RRF but the dataset-specific mean-optimal weight (48/128 significant, 46 surviving FDR). Ultimately our contribution is a framework for practitioners to determine the most appropriate fusion method given their dataset characteristics (mean optimal weight intervals observed in a train split and whether cross-dataset fixed weights fall into the optimal weight intervals for most queries) and deployment requirements (acceptable latency, quality, and available infrastructure).
 
 ---
 
@@ -110,15 +125,14 @@ We thank the reviewer for this suggestion. We ran an error analysis: for each da
 poorly-predicted and correlated the outcome with 15 query features (length, term rarity, named
 entities, digits, WH-type, and WordNet ambiguity).
 
-The result reinforces the paper's central claim. On the two large datasets, **no query feature
-explains more than ~1% of the variance** in whether a query is mispredicted (strongest
-|r| = 0.07 on MSMARCO, 0.09 on NQ), and the query *ambiguity* the reviewer hypothesised shows
-essentially **no correlation** on any dataset (|r| ≤ 0.08). The one directionally consistent, if
-weak, signal is that **longer queries with rarer terms are marginally harder to predict** (holding
+The result reinforces the paper's central claim. On the two large datasets, no query feature
+explains more than ~1% of the variance in whether a query is mispredicted (strongest
+|r| = 0.07 on MSMARCO, 0.09 on NQ), and the query ambiguity the reviewer hypothesised shows
+essentially no correlation on any dataset (|r| ≤ 0.08). The one directionally consistent, if
+weak, signal is that longer queries with rarer terms are marginally harder to predict (holding
 sign across all four collections), which fits intuition. In short, mispredicted queries are not
 identifiable from surface query properties, which is direct evidence for our conclusion that the
-per-query optimum is not predictable from the query alone. We add this analysis, with the full
-per-feature correlation tables, to the appendix.
+per-query optimum is not predictable from the query alone. 
 
 | dataset | strongest feature (→ harder) | r | ambiguity r |
 |---|---|:--:|:--:|
