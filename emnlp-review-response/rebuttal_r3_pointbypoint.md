@@ -114,28 +114,59 @@ We thank the reviewer for raising this. We are committed to full reproducibility
 
 ---
 
-## W5 — Limited investigation of *why* prediction is hard (which queries are mispredicted; query-property correlations)
 
-We thank the reviewer for this suggestion. We ran an error analysis: for each dataset we labelled queries as well- vs
-poorly-predicted and correlated the outcome with 15 query features (length, term rarity, named
-entities, digits, WH-type, and WordNet ambiguity).
+## W5. Limited investigation of why prediction is hard (which queries are mispredicted; query-property correlations)
 
-The result reinforces the paper's central claim. On the two large datasets, no query feature
-explains more than ~1% of the variance in whether a query is mispredicted (strongest
-|r| = 0.07 on MSMARCO, 0.09 on NQ), and the query ambiguity the reviewer hypothesised shows
-essentially no correlation on any dataset (|r| ≤ 0.08). The one directionally consistent, if
-weak, signal is that longer queries with rarer terms are marginally harder to predict (holding
-sign across all four collections), which fits intuition. In short, mispredicted queries are not
-identifiable from surface query properties, which is direct evidence for our conclusion that the
-per-query optimum is not predictable from the query alone. 
+We thank the reviewer for this suggestion, and we ran a query-level error analysis to test it directly.
 
-| dataset | strongest feature (→ harder) | r | ambiguity r |
+For every query we measure prediction difficulty as the gap between the
+predicted fusion weight and the nearest edge of that query's oracle-optimal weight interval (0 if the
+prediction lands inside it). Because the reviewer's question
+concerns weight-misprediction, so we rank by prediction error. Within each of the four retriever pairs we take the hardest-to-predict 5 percent
+(labelled poorly-predicted) and the easiest 5 percent (labelled well-predicted), an equal number from each
+pair, then pool across pairs and across the eight query-adaptive methods. This yields the labelled sets
+below. A query that is hard for one retriever pair but easy for another can appear in both groups, and such
+overlap is small (at most 5 percent of observations).
+
+| dataset | poorly-predicted | well-predicted | total observations |
+|---|:--:|:--:|:--:|
+| MSMARCO | 4,154 | 5,563 | 9,717 |
+| NQ | 2,112 | 2,696 | 4,808 |
+| NFCorpus | 277 | 308 | 585 |
+| ACORD | 62 | 62 | 124 |
+
+For each query we compute 15 surface features spanning the properties the reviewer named:
+length (character and word count), term rarity (average rarity, fraction of rare words, presence of a
+corpus-singleton term), named entities (entity count, has-entity, proper-noun count), WH-type, and digits.
+We also measure query ambiguity two independent ways: average WordNet polysemy (following Mothe and Tanguy,
+SIGIR 2005) and an LLM-based CLAMBER (ACL 2024) ambiguity category. We correlate each feature with the
+poorly- versus well-predicted label using point-biserial correlation, which is a standard effect size.
+
+On the two large datasets, no feature explains more than about 1 percent of the variance in
+whether a query is mispredicted. The strongest absolute correlation is 0.07 on MSMARCO and 0.09 on NQ, and
+the ambiguity the reviewer hypothesised is essentially null under both measures. WordNet ambiguity stays at
+or below 0.05 on the large sets, and the CLAMBER binary is-ambiguous flag is non-significant everywhere.
+
+| dataset | strongest predictor (direction) | r | ambiguity r (WordNet) |
 |---|---|:--:|:--:|
-| MSMARCO | query length | +0.07 | −0.01 |
-| NQ | rare/singleton terms | +0.09 | −0.02 |
-| NFCorpus | (term rarity, opposite sign) | −0.17 | +0.05 |
-| ACORD | query length | +0.28 | +0.08 |
+| MSMARCO | query length (longer is harder) | +0.07 | −0.01 |
+| NQ | rare or singleton terms (rarer is harder) | +0.09 | −0.02 |
+| NFCorpus | term rarity (opposite sign) | −0.16 | +0.05 |
+| ACORD | query length (longer is harder) | +0.28 | +0.08 |
 
-ACORD has only 57 queries, so its larger coefficient is high-variance. Correlations are
-point-biserial (effect sizes); with the large query counts, significance is not the discriminating
-factor — the effect sizes are.
+Three points follow. First, the only directionally consistent, if weak, signals are query length and
+vocabulary rarity. Longer queries with rarer terms are marginally harder to predict on three of four
+collections, the sign flips on NFCorpus, and these are the strongest and most consistent effects anywhere
+in the analysis. 
+Second, ambiguity in any form we measured is a weak-to-absent predictor. WordNet polysemy, the CLAMBER binary flag, and the fine-grained CLAMBER category are all near zero, and the one marginal
+exception (CLAMBER category on MSMARCO, p equal to 0.01) is confined to a single method rather than a
+general effect. 
+Third, the entity-related features and that lone ambiguity-category signal track the same method- and dataset-specific behaviour on MSMARCO, 
+so they are not independent evidence that ambiguous or entity-heavy queries are harder. ACORD's larger coefficients are high-variance, because it has only 57
+queries, and should not be over-read.
+
+In short, mispredicted queries are not identifiable from surface query properties. The strongest signal
+anywhere on our large benchmarks explains under 1 percent of the variance. This is direct evidence for the
+paper's central claim that the per-query optimal fusion weight is not predictable from properties of the
+query alone, which is why current methods recover only a fraction of the available headroom.
+
