@@ -73,8 +73,8 @@ address each point below, in the order raised.
 
 ## W1 — "Limited methodological novelty; empirical characterization rather than a new method."
 
-We appreciate the reviewer raising this, and we understand the expectation of a new fusion or optimization method. We would like to clarify our intended contribution. By design, the paper is a diagnostic and structural study rather than a proposal for a single new fusion model, the paper states this explicitly (§3.3: "The spectrum is not a proposal for a single new method"). The contribution is not another predictor but the finding the reviewer credits as novel: that the per-query optimal WRRF weight is a set-valued interval, not a point. 
-Additionally, we contribute an analysis of the quality-latency trade-off across query adaptive methods, comparing to standard 50-50 RRF and the mean optimal weight setting (set according to training data).  We show that quality and latency do not trade off monotonically: on responsive datasets, a CPU-only method (the mean optimal weight or a lightweight regressor) recovers much of the achievable headroom at a fraction of the cost of an LLM call, while on harder configurations even LLM-based methods recover only a small fraction of it. This motivates the tiered decision framework we present in §6, which maps a practitioner's constraints, labeled training data, GPU access, latency budget, to the appropriate method class.
+We appreciate the reviewer raising this, and we understand the expectation of a new fusion or optimization method. We would like to clarify our intended contribution. By design, the paper is a diagnostic and structural study rather than a proposal for a single new fusion model, and the paper states this explicitly (§3.3: "The spectrum is not a proposal for a single new method"). The contribution is not another predictor but the finding the reviewer credits as novel: that the per-query optimal WRRF weight is a set-valued interval, not a point. 
+Additionally, we contribute an analysis of the quality-latency trade-off across query-adaptive methods, compared to standard 50-50 RRF and the mean optimal weight setting (set according to training data).  We show that quality and latency do not trade off monotonically: on responsive datasets, a CPU-only method (the mean optimal weight or a lightweight regressor) recovers much of the achievable headroom at a fraction of the cost of an LLM call, while on harder configurations even LLM-based methods recover only a small fraction of it. This motivates the tiered decision framework we present in §6, which maps a practitioner's constraints, labeled training data, GPU access, latency budget, to the appropriate method class.
 
 
 
@@ -102,7 +102,7 @@ no meaningful effect on the metric, so the interval statistics reported in the p
 
 We have added per-query significance testing of every fusion method against standard (unweighted)
 RRF using a paired t-test over 128 tests (8 query-adaptive methods × 16
-dataset–combinations). We control the false discovery rate via the Benjamini–Hochberg procedure
+dataset combinations). We control the false discovery rate via the Benjamini–Hochberg procedure
 (Benjamini & Hochberg, 1995), following recent work showing FDR control is appropriate for the
 many-comparison setting typical in IR system evaluation (Otero et al., 2025).
 
@@ -124,17 +124,17 @@ The gains from per-query weighting are real, not noise. On both large benchmarks
 
 We agree, and we ran additional experiments in the three-retriever setting. We fuse
 BM25 + RM3 + Qwen3 (Qwen3 is the strongest dense retriever on every dataset; BM25 and RM3
-trade places across datasets), and re-run two of the strongest query adaptive methods from the k=2 setting against a k=3 RRF baseline. We select two methods that were the strongest query-adaptive predictors at k=2 and that sit in different tiers of our decision framework (§6): the passage-conditioned ModernBERT predictor (Tier 2, a fine-tuned transformer encoder running on GPU at ~8 ms/query, conditioned on each retriever's top-1 passage) and the few-shot Ministral predictor (Tier 3, in-context LLM inference at ~225 ms/query, conditioned on the query alone). This pairs the strongest fine-tuned discriminative encoder with the strongest generative LLM predictor, spanning both ends of the cost–adaptivity spectrum rather than re-testing two variants of the same approach. These two also recover the most headroom at k=2: across the 16 k=2 configurations they achieve the best score in 10, including 7 of the 8 columns on the large MSMARCO and NQ benchmarks, so they are the natural candidates to carry into the k=3 setting. Statistical significance is a per-query paired t-test comparing each method to the equal-weight RRF baseline, which we selected for its robustness across sample sizes and findings from prior work
+trade places across datasets), and re-run two of the strongest query-adaptive methods from the k=2 setting against a k=3 RRF baseline. We select two methods that were the strongest query-adaptive predictors at k=2 and that sit in different tiers of our decision framework (§6): the passage-conditioned ModernBERT predictor (Tier 2, a fine-tuned transformer encoder running on GPU at ~8 ms/query, conditioned on each retriever's top-1 passage) and the few-shot Ministral predictor (Tier 3, in-context LLM inference at ~225 ms/query, conditioned on the query alone). This pairs the strongest fine-tuned discriminative encoder with the strongest generative LLM predictor, spanning both ends of the cost–adaptivity spectrum rather than re-testing two variants of the same approach. These two also recover the most headroom at k=2: across the 16 k=2 configurations they achieve the best score in 10, including 7 of the 8 columns on the large MSMARCO and NQ benchmarks, so they are the natural candidates to carry into the k=3 setting. Statistical significance is a per-query paired t-test comparing each method to the equal-weight RRF baseline, which we selected for its robustness across sample sizes and findings from prior work
 (Urbano et al., 2019, [arXiv:1905.11096](https://arxiv.org/abs/1905.11096);
 Ihemelandu and Ekstrand, 2023, [arXiv:2305.02461](https://arxiv.org/abs/2305.02461);
 Urbano, 2026, [arXiv:2604.25349](https://arxiv.org/abs/2604.25349)).
 
-| dataset | metric | k=3 RRF | k=3 query-adaptive (best) | best k=2 method | oracle ceiling k=2 → k=3 |
+| dataset | metric | best k=2 method | k=3 RRF | k=3 query-adaptive (best) | oracle ceiling k=2 → k=3 |
 |---|:--:|:--:|:--:|:--:|:--:|
-| NFCorpus | ndcg@10 | 0.384 | 0.398 (p<0.001) | 0.409 | 0.473 → 0.482 |
-| MSMARCO | mrr@10 | 0.247 | 0.340 (p<0.001) | 0.350 | 0.457 → 0.477 |
-| NQ | mrr@10 | 0.314 | 0.435 (p<0.001) | 0.447 | 0.549 → 0.578 |
-| ACORD | ndcg@10 | 0.132 | 0.148 (p=0.21) | 0.159 | 0.231 → 0.244 |
+| NFCorpus | ndcg@10 | 0.409 | 0.384 | 0.398 (p<0.001) | 0.473 → 0.482 |
+| MSMARCO | mrr@10 | 0.350 | 0.247 | 0.340 (p<0.001) | 0.457 → 0.477 |
+| NQ | mrr@10 | 0.447 | 0.314 | 0.435 (p<0.001) | 0.549 → 0.578 |
+| ACORD | ndcg@10 | 0.159 | 0.132 | 0.148 (p=0.21) | 0.231 → 0.244 |
 
 Three takeaways follow. First, query-adaptive methods extend beyond k=2 and still beat standard
 RRF (p < 0.001 on both large benchmarks). Second, the headroom grows with k: the per-query oracle
@@ -143,7 +143,7 @@ and the oracle−RRF gap is larger at k=3 than for any k=2 pair (e.g. NQ 0.264 v
 MSMARCO 0.230 vs ≤0.175), so the k=2 study is a lower bound on achievable headroom. Third,
 recovering that headroom becomes harder as k grows, because the space of candidate weight settings
 explodes. With a grid step size of 0.01, the k=2 setting affords 101 possible combinations. The k=3
-setting has 5,151 possible settings. Predicting the per query optima thus becomes more challenging.
+setting has 5,151 possible settings. Predicting the per-query optimum thus becomes more challenging.
 Because RM3 and BM25 are similar retrievers, it may well be the case that the simpler k=2 setting
 with BM25 and Qwen captures most of the range of effective fusion weights predictable from the
 query, and adding the third retriever provides little value. In practice most hybrid search systems
@@ -153,13 +153,13 @@ combine two retrievers that focus on lexical and semantic matching respectively.
 
 ## C1 — Practical implications of the interval-valued formulation
 
-The interval structure carries three concrete design implications beyond interval aware supervision, and our decision framework (§6) operationalizes them.
+The interval structure carries three concrete design implications beyond interval-aware supervision, and our decision framework (§6) operationalizes them.
 
-First, it provides a signal for whether dynamic weighting is worth doing at all. Before deploying any predictor, a practitioner can measure two quantities on a labeled train split: the fraction of queries whose optimal interval already contains 0.5 (Figure 1), and the dataset level headroom (Oracle−RRF)/Oracle (§6.1). When many queries are already optimal at 0.5 or the headroom is small, as on ACORD and NFCorpus, per query prediction cannot pay off, and standard RRF (T0) or a single dataset level constant (T1) is the right choice with no query time model warranted.
+First, it provides a signal for whether dynamic weighting is worth doing at all. Before deploying any predictor, a practitioner can measure two quantities on a labeled train split: the fraction of queries whose optimal interval already contains 0.5 (Figure 1), and the dataset-level headroom (Oracle−RRF)/Oracle (§6.1). When many queries are already optimal at 0.5 or the headroom is small, as on ACORD and NFCorpus, per-query prediction cannot pay off, and standard RRF (T0) or a single dataset-level constant (T1a) is the right choice with no query-time model warranted.
 
-Second, the interval width relaxes the precision a predictor needs. Because the optimum is a range rather than a point, any prediction that lands inside the interval is optimal, so a cheap low capacity predictor is often sufficient. This is why our CPU only T1 and encoder based T2 methods recover headroom comparable to the far more expensive LLM predictors on responsive datasets (§5.1, Table 2): the task does not require hitting an exact point.
+Second, the interval width relaxes the precision a predictor needs. Because the optimum is a range rather than a point, any prediction that lands inside the interval is optimal, so a cheap low-capacity predictor is often sufficient. This is why our CPU-only T1a and T1b as well as encoder-based T2 methods recover headroom comparable to the far more expensive LLM predictors on responsive datasets (§5.1, Table 2): the task does not require hitting an exact point.
 
-Third, only when the headroom is large and the optimum is genuinely query dependent, with few queries optimal at 0.5 and a wide oracle to RRF gap as on MS MARCO and NQ, does a higher tier become justified, and even then the bottleneck is the predictability of the optimum from the query rather than the choice of method (§5.2). The interval view thus reframes the practitioner's question from which predictor is best to whether this dataset needs per query weighting at all and, if so, at what tier, which is the mapping our framework provides.
+Third, only when the headroom is large and the optimum is genuinely query dependent, with few queries optimal at 0.5 and a wide oracle-to-RRF gap as on MS MARCO and NQ, does a higher tier become justified, and even then the bottleneck is the predictability of the optimum from the query rather than the choice of method (§5.2). The interval view thus reframes the practitioner's question from which predictor is best to whether this dataset needs per query weighting at all and, if so, at what tier, which is the mapping our framework provides.
 
 ---
 
