@@ -1,7 +1,7 @@
 # Repository Overview: query-based-rrf
 
 For project motivation, the latency/quality decision framework (tiers T0–T3b), and top-level
-usage instructions, see [`README.md`](./README.md) — that is the canonical entry point. This
+usage instructions, see [`README.md`](../README.md) — that is the canonical entry point. This
 document covers implementation details that aren't in the README: the full directory layout,
 the data-prep pipeline, per-experiment config/architecture specifics, output file formats, and
 known inconsistencies worth cleaning up.
@@ -13,7 +13,10 @@ known inconsistencies worth cleaning up.
 ```
 query-based-rrf/
 ├── README.md
-├── REPO_OVERVIEW.md
+├── docs/
+│   ├── REPO_OVERVIEW.md              # this file
+│   └── images/
+│       └── tradeoff_all.png          # referenced by README
 ├── .env.local                        # template — copy to .env and fill in your paths
 ├── format_metrics_table.py
 ├── get_mean_best_weight.py
