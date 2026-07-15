@@ -118,7 +118,7 @@ Before deploying any predictor, a practitioner can measure on a train split: the
 
 Since the optimum is a range, any prediction inside it is optimal, so a cheap predictor often suffices. CPU-only (T1) and encoder (T2) methods recover headroom comparable to the far more expensive LLM predictors on responsive datasets (§5.1, Table 2).
 
-A higher tier is warranted when headroom is large and query-dependent (MS MARCO, NQ). Even there the bottleneck is predicting of the optimum from the query, not the method (§5.2). This turns "which predictor is best" into "does this dataset need per-query weighting, and at what tier."
+A higher tier is warranted when headroom is large and query-dependent (MS MARCO, NQ). Even there the bottleneck is predicting the optimum from the query, not the method (§5.2). This turns "which predictor is best" into "does this dataset need per-query weighting, and at what tier."
 
 
 ## C2 — Writing / typos
