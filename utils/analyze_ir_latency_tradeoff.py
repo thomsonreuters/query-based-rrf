@@ -43,7 +43,7 @@ from aggregate_metrics import (
 from plot_tradeoff import plot_tradeoff_grid
 
 # Models excluded from both timing and metrics before any processing.
-EXCLUDED_MODELS = {"DAT-gpt5.2"}
+EXCLUDED_MODELS = set()
 
 # Per-dataset display names and metric labels used in the plots.
 DATASET_DISPLAY = {

@@ -53,7 +53,6 @@ MODEL_TIER_MARKERS = {
     "moderbert passage cond":    "^",   # tier 2b: ModernBERT
     "DAT-qwen3":                 "D",   # tier 3a: DAT-based
     "DAT-ministral3":            "D",
-    "DAT-gpt5.2":                "D",
     "llm-fs-qwen3":              "o",   # tier 3b: LLM few-shot
     "llm-fs-qwen3 interval":     "o",
     "llm-fs-ministral":          "o",

@@ -51,7 +51,7 @@ def load_and_validate(path: str) -> tuple[pd.DataFrame, str]:
         expected = DATASET_EXPECTED_METRIC.get(dataset)
         if expected is not None and metric_col != expected:
             sys.exit(
-                f"ERROR [{path}]: column 6 is '{metric_col}' but dataset "
+                f"ERROR [{path}]: column 7 is '{metric_col}' but dataset "
                 f"'{dataset}' expects '{expected}' — check column order."
             )
 
