@@ -89,44 +89,18 @@ We thank the reviewer for raising this. We are committed to full reproducibility
 
 
 
-## W5. Limited investigation of why prediction is difficult
+## W5 — Limited investigation of why prediction is difficult
 
-We would first gently note that recovery is not uniformly small. Under an evaluation over all queries,
-rather than only those with a non-empty optimal-weight set, strong query-adaptive methods recover up to 61% 
-of the available headroom on NQ (RM3+Qwen3) and exceed 25 percent on several MSMARCO and NQ
-configurations. That said, a gap remains. To investigate, we ran a query-level error analysis relating query 
-properties to prediction difficulty across three methods: mean optimal weight,
-ModernBERT passage-conditioned, and LLM few-shot Ministral.
+Recovery is not uniformly small: evaluated over all queries rather than only those with a non-empty optimal-weight set, strong query-adaptive methods recover up to 61% of headroom on NQ (RM3+Qwen3) and exceed 25% on several MSMARCO/NQ configurations. A gap remains, so we ran a query-level analysis linking query properties to prediction difficulty for three methods: mean optimal weight, ModernBERT passage-conditioned, and LLM few-shot Ministral.
 
-We define prediction difficulty for a query as the gap between the predicted fusion weight and the
-nearest edge of that query's oracle-optimal weight interval, and zero if the prediction already falls
-inside the interval. We use all four sparse and dense retriever combinations (BM25 or RM3 paired with
-MiniLM or Qwen3). Within each combination we rank queries by this gap and label the hardest 5% as weakly
-predicted and the easiest 5% as well predicted. For each method and dataset we then concatenate these
-sets across the four combinations and drop duplicate queries, keeping the most extreme instance of any
-query flagged by more than one combination.
+For each query we measure the gap between the predicted weight and the nearest edge of its oracle-optimal interval (zero if inside), pooled across all four retriever pairs. We label the hardest 5% "weakly predicted" and easiest 5% "well predicted," and test four properties: term rarity (mean negative log document frequency), word count, entity count (spaCy NER), and ambiguity rate (CLAMBER taxonomy, Zhang et al. 2024, via LLM classification). For MSMARCO, each cell reports the well-predicted vs. weakly-predicted mean and p from a point-biserial correlation (correlating the binary label with the property; equivalent to a two-sample t-test), whose magnitude |r| we cite below; bold marks p < 0.05.
 
-We report four query properties. Average term rarity is the mean over the query's tokens of the negative
-log of the fraction of collection queries containing the token, so a higher value means rarer
-vocabulary. Word count is the number of word tokens. Entity count is the number of named entities
-detected by a spaCy NER model. Ambiguity follows the CLAMBER taxonomy (ACL 2024): we prompt an LLM to
-mark each query as unambiguous or as one of eight ambiguity types, and report the rate at which queries
-are flagged ambiguous. For MSMARCO, each cell below shows the well-predicted mean → weakly-predicted
-mean, with the point-biserial p against the weakly-predicted label, and bold marks p < 0.05.
-
-| query property (MSMARCO) | 02 mean-optimal | 06 ModernBERT (passage-cond.) | 10 LLM few-shot (Ministral) |
+| property (MSMARCO) | mean-optimal | ModernBERT (passage-cond.) | LLM few-shot (Ministral) |
 |---|:--:|:--:|:--:|
-| average term rarity | 5.13 → 5.28 (**0.007**) | 5.13 → 5.18 (0.38) | 5.00 → 5.25 (**<0.001**) |
-| word count | 5.79 → 6.25 (**0.001**) | 5.84 → 5.92 (0.60) | 5.85 → 6.13 (**0.042**) |
-| entity count | 0.25 → 0.30 (0.084) | 0.26 → 0.28 (0.49) | 0.21 → 0.30 (**0.001**) |
-| ambiguous-query rate | 0.57 → 0.59 (0.67) | 0.56 → 0.58 (0.54) | 0.60 → 0.59 (0.74) |
+| term rarity | 5.13 vs. 5.28 (**0.007**) | 5.13 vs. 5.18 (0.38) | 5.00 vs. 5.25 (**<0.001**) |
+| word count | 5.79 vs. 6.25 (**0.001**) | 5.84 vs. 5.92 (0.60) | 5.85 vs. 6.13 (**0.042**) |
+| entity count | 0.25 vs. 0.30 (0.084) | 0.26 vs. 0.28 (0.49) | 0.21 vs. 0.30 (**0.001**) |
+| ambiguous rate | 0.57 vs. 0.59 (0.67) | 0.56 vs. 0.58 (0.54) | 0.60 vs. 0.59 (0.74) |
 
-Taking MSMARCO as an example, the relationship between query properties and prediction difficulty is
-small and method-dependent. For the mean-optimal-weight baseline and the LLM few-shot method, weakly
-predicted queries are significantly longer and built from rarer terms than well predicted ones, and for
-the LLM method they also contain more named entities. For ModernBERT passage-conditioned, no surface
-property significantly separates the two groups. The ambiguity signal the reviewer specifically asked
-about does not distinguish weakly from well predicted queries for any method (all p > 0.5). Even where
-significant, effects are small (|r| ≤ 0.13), so these surface properties explain only part of the
-difficulty, and the per-query optimum remains hard to predict from the query alone.
+The relationship is small and method-dependent. Weakly predicted queries are longer and rarer for mean-optimal and LLM baselines (also more entity-rich for the LLM); no property separates ModernBERT's groups. Ambiguity does not separate weakly from well predicted queries for any method (all p > 0.5). Effects are small even where significant (|r| ≤ 0.13). These properties explain only part of the difficulty, and the per-query optimum remains hard to predict from the query alone.
 
