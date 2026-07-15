@@ -48,12 +48,12 @@ experimental design thorough. We address each point below, in the order raised.
 
 ## W1 — Small fonts in figures, equations, and tables
 
-We thank the reviewer for flagging this, and we agree the current tables are too dense to read comfortably. In the revision we will enlarge them.
+We agree some tables are too dense. In the revision we will enlarge them.
 
 
 ## W2 — Generalization beyond k=2
 
-We agree, and ran a three-retriever pilot: BM25 + RM3 + Qwen3 with the two strongest methods — ModernBERT passage-conditioned (Tier 2) and Ministral few-shot (Tier 3) — against a k=3 RRF baseline, with a per-query paired t-test.
+We ran a three-retriever pilot: BM25 + RM3 + Qwen3 with the two strongest methods — ModernBERT passage-conditioned (Tier 2) and Ministral few-shot (Tier 3) — against a k=3 RRF baseline, with a per-query paired t-test.
 
 | dataset | metric | best k=2 method | k=3 RRF | k=3 query-adaptive (best) | oracle ceiling k=2 → k=3 |
 |---|:--:|:--:|:--:|:--:|:--:|

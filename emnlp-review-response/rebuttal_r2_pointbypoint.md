@@ -98,7 +98,7 @@ We also verified that many query-adaptive methods beat not just RRF but the data
 
 ## W4 — Generalization beyond k=2
 
-We agree, and ran a three-retriever pilot: BM25 + RM3 + Qwen3 with the two strongest methods — ModernBERT passage-conditioned (Tier 2) and Ministral few-shot (Tier 3) — against a k=3 RRF baseline, with a per-query paired t-test.
+We ran a three-retriever pilot: BM25 + RM3 + Qwen3 with the two strongest methods — ModernBERT passage-conditioned (Tier 2) and Ministral few-shot (Tier 3) — against a k=3 RRF baseline, with a per-query paired t-test.
 
 | dataset | metric | best k=2 method | k=3 RRF | k=3 query-adaptive (best) | oracle ceiling k=2 → k=3 |
 |---|:--:|:--:|:--:|:--:|:--:|
@@ -114,11 +114,11 @@ Query-adaptive methods are significantly better than RRF at k=3 (p<0.001). Headr
 
 In addition to our contribution of an interval-aware loss, the interval structure gives three design implications that our decision framework (§6) operationalizes.
 
-Before deploying any predictor, a practitioner can measure two quantities on a labeled train split: the fraction of queries whose optimal interval already contains 0.5 (Figure 1), and the dataset-level headroom relative to the oracle (§6.1). When many queries are already optimal at 0.5 or the headroom is small, per-query prediction has limited utility, and standard RRF (T0) or a dataset-level constant (T1a) is the right choice with no query-time model warranted.
+Before deploying any predictor, a practitioner can measure on a train split: the fraction of queries whose optimal interval already contains 0.5 (Figure 1) and RRF headroom relative to the oracle (§6.1). When many queries are already optimal at 0.5 or the headroom is small, per-query prediction has limited utility, and standard RRF (T0) or a dataset-level constant (T1a) is the right choice with no query-time model warranted.
 
-Since the optimum is a range, any prediction inside it is optimal, so a cheap predictor often suffices — CPU-only (T1) and encoder (T2) methods recover headroom comparable to the far more expensive LLM predictors on responsive datasets (§5.1, Table 2).
+Since the optimum is a range, any prediction inside it is optimal, so a cheap predictor often suffices. CPU-only (T1) and encoder (T2) methods recover headroom comparable to the far more expensive LLM predictors on responsive datasets (§5.1, Table 2).
 
-A higher tier earns its cost only when headroom is large and query-dependent (MS MARCO, NQ), and even there the bottleneck is predicting the optimum, not the method (§5.2). This turns "which predictor is best" into "does this dataset need per-query weighting, and at what tier."
+A higher tier is warranted when headroom is large and query-dependent (MS MARCO, NQ). Even there the bottleneck is predicting of the optimum from the query, not the method (§5.2). This turns "which predictor is best" into "does this dataset need per-query weighting, and at what tier."
 
 
 ## C2 — Writing / typos
