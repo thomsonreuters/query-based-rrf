@@ -32,7 +32,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from pathlib import Path
 
-matplotlib.rcParams["font.family"] = "monospace"
+matplotlib.rcParams["font.family"] = "sans-serif"
+matplotlib.rcParams["font.sans-serif"] = ["DejaVu Sans"]
 matplotlib.rcParams["font.size"] = 11
 
 # ---------------------------------------------------------------------------
@@ -42,31 +43,36 @@ matplotlib.rcParams["font.size"] = 11
 # Tier-based marker shapes — one shape per model family.
 # Models not listed fall back to "o".
 MODEL_TIER_MARKERS = {
-    "rrf":                    "X",   # tier 1: baselines
-    "mow":                    "X",
-    "ridge regression":       "s",   # tier 2: linear
-    "roberta regression":     "o",   # tier 3a: RoBERTa
-    "roberta interval":       "o",
-    "moderbert regression":   "^",   # tier 3b: ModernBERT
-    "moderbert interval":     "^",
-    "moderbert passage cond": "^",
-    "DAT-qwen3":              "D",   # tier 4: DAT-based
-    "DAT-gpt5.2":             "D",
-    "llm-fs-qwen3":           "v",   # tier 5: LLM few-shot
-    "llm-fs-ministral":       "v",
+    "rrf":                       "*",   # tier 0: baselines
+    "mow":                       "x",   # tier 1: linear
+    "ridge regression":          "x",
+    "roberta regression":        "v",   # tier 2a: RoBERTa/ModernBert
+    "roberta interval":          "v",
+    "moderbert regression":      "^",
+    "moderbert interval":        "^",
+    "moderbert passage cond":    "^",   # tier 2b: ModernBERT
+    "DAT-qwen3":                 "D",   # tier 3a: DAT-based
+    "DAT-ministral3":            "D",
+    "llm-fs-qwen3":              "o",   # tier 3b: LLM few-shot
+    "llm-fs-qwen3 interval":     "o",
+    "llm-fs-ministral":          "o",
+    "llm-fs-ministral interval": "o",
 }
 
 # Okabe-Ito palette — color-blind safe (deuteranopia, protanopia, tritanopia).
 # Reference: Okabe & Ito (2008), https://jfly.uni-koeln.de/color/
+# Ordered to alternate cool/warm so adjacent indices have maximum perceptual
+# contrast — prevents same-family pairs (e.g. two ModernBERTs) from landing on
+# similar reds.
 MODEL_COLORS = [
-    "#E69F00",  # orange
-    "#56B4E9",  # sky blue
-    "#009E73",  # bluish green
-    "#0072B2",  # blue
-    "#D55E00",  # vermillion
-    "#CC79A7",  # reddish purple
-    "#F0E442",  # yellow (use cautiously on white backgrounds)
-    "#000000",  # black
+    "#0072B2",  # blue           (cool)
+    "#D55E00",  # vermillion     (warm)
+    "#009E73",  # bluish green   (cool)
+    "#E69F00",  # orange         (warm)
+    "#CC79A7",  # reddish purple (warm)
+    "#56B4E9",  # sky blue       (cool)
+    "#000000",  # black          (neutral)
+    "#F0E442",  # yellow         (use cautiously on white backgrounds)
 ]
 
 # X position for zero-latency models on the log scale
@@ -74,23 +80,39 @@ ZERO_X = 0.1
 X_LIM  = (0.06, 3000)
 
 # Marker size and edge-width overrides keyed by marker code.
-_MARKER_SIZE = {"*": 14, "^": 11, "v": 11, "<": 11, ">": 11}
-_MARKER_EW   = {"x": 2.0, "X": 2.0}
+_MARKER_SIZE = {"*": 12, "^": 11, "v": 10, "<": 11, ">": 11}
+_MARKER_EW   = {"x": 3, "X": 2.0, "+": 2.7, "v": 2}
 
 # Display-name overrides applied only in the legend (data pipeline names are unchanged).
 LEGEND_DISPLAY_NAMES = {
-    "rrf":                    "RRF",
-    "mow":                    "Mean Optimal Weight",
-    "roberta regression":     "RoBERTa regression",
-    "roberta interval":       "RoBERTa interval",
-    "moderbert regression":   "ModernBERT regression",
-    "moderbert interval":     "ModernBERT interval",
-    "moderbert passage cond": "ModernBERT passage cond",
+    "rrf":                       "Standard RRF",
+    "mow":                       "Mean Optimal Weight",
+    "ridge regression":          "Linear Regression",
+    "roberta regression":        "RoBERTa regression",
+    "roberta interval":          "RoBERTa interval",
+    "moderbert regression":      "ModernBERT regression",
+    "moderbert interval":        "ModernBERT",
+    "moderbert passage cond":    "ModernBERT passage cond",
+    "DAT-qwen3":                 "DAT Qwen3",
+    "DAT-ministral3":            "DAT Ministral",
+    "llm-fs-qwen3 interval":     "LLM-FS Qwen3",
+    "llm-fs-ministral interval": "LLM-FS Ministral",
 }
 
-# Canonical names pinned to the bottom of the Models legend, in this order.
-# All other models are sorted alphabetically above them.
-LEGEND_TAIL = ["mow", "rrf"]
+# Canonical names pinned to the top of the Methods legend, in this order.
+# Other models (not in HEAD or TAIL) are sorted alphabetically between them.
+LEGEND_HEAD = [
+    "llm-fs-ministral interval",
+    "llm-fs-qwen3 interval",
+    "DAT-ministral3",
+    "DAT-qwen3",
+]
+
+# Canonical names pinned to the bottom of the Methods legend, in this order.
+LEGEND_TAIL = ["ridge regression", "mow", "rrf"]
+
+# Models that are always filled regardless of appearance order.
+FORCE_FILLED = {"roberta interval"}
 
 
 def _latency_bucket_idx(latency_ms):
@@ -111,7 +133,7 @@ def _build_style_map(model_names):
     style_map = {}
     for i, name in enumerate(unique):
         color  = MODEL_COLORS[i % len(MODEL_COLORS)]
-        filled = i < len(MODEL_COLORS)  # first 8 filled, next 8 hollow
+        filled = (i < len(MODEL_COLORS)) or (name in FORCE_FILLED)
         marker = MODEL_TIER_MARKERS.get(name, "o")
         style_map[name] = (color, filled, marker)
     return style_map
@@ -162,7 +184,7 @@ def _draw_panel(ax, models, metric_name, dataset_name, delta_mode, style_map):
     ax.set_xscale("log")
     ax.set_xlim(*X_LIM)
     ax.set_xticks([ZERO_X, 1, 10, 100, 1000])
-    ax.set_xticklabels(["0 ms", "~1 ms", "~10 ms", "~100 ms", "~1000 ms"])
+    ax.set_xticklabels(["0 ms", "1 ms", "10 ms", "100 ms", "1000 ms"])
     ax.xaxis.set_minor_locator(ticker.NullLocator())
     ax.set_xlabel("Per-query inference latency (log scale)", labelpad=8)
     ax.set_ylim(y_min - pad, y_max + pad)
@@ -210,12 +232,16 @@ def _model_legend_handles(points):
             )
         )
 
+    head_labels = {LEGEND_DISPLAY_NAMES.get(n, n) for n in LEGEND_HEAD}
     tail_labels = {LEGEND_DISPLAY_NAMES.get(n, n) for n in LEGEND_TAIL}
-    body = sorted((h for h in handles if h.get_label() not in tail_labels),
-                  key=lambda h: h.get_label())
+    pinned_labels = head_labels | tail_labels
+    middle = sorted((h for h in handles if h.get_label() not in pinned_labels),
+                    key=lambda h: h.get_label())
+    head = [h for n in LEGEND_HEAD
+            for h in handles if h.get_label() == LEGEND_DISPLAY_NAMES.get(n, n)]
     tail = [h for n in LEGEND_TAIL
             for h in handles if h.get_label() == LEGEND_DISPLAY_NAMES.get(n, n)]
-    return body + tail
+    return head + middle + tail
 
 
 def _place_panel_legend(ax, model_handles):
@@ -224,7 +250,7 @@ def _place_panel_legend(ax, model_handles):
         handles=model_handles,
         loc="upper left", bbox_to_anchor=(1.02, 1),
         fontsize=9, framealpha=0.9, edgecolor="lightgray",
-        title="Models", title_fontsize=9,
+        title="Methods", title_fontsize=9,
     )
 
 
@@ -235,7 +261,7 @@ def _place_grid_legend(fig, model_handles):
         loc="upper left", bbox_to_anchor=(0.76, 0.97),
         ncol=1,
         fontsize=9, framealpha=0.9, edgecolor="lightgray",
-        title="Models", title_fontsize=9,
+        title="Methods", title_fontsize=9,
     )
 
 

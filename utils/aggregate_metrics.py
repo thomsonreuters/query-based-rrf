@@ -3,9 +3,9 @@
 Aggregate retrieval-metric CSVs into one row per (dataset, model).
 
 Input CSVs (one per dataset) must have columns:
-    Method, Dataset, Split, Sparse, Dense, <metric@5>, <metric@10>
+    <index>, Method, Dataset, Split, Sparse, Dense, <metric@5>, <metric@10>
 
-The 7th column (index 6) is used as the metric — either NDCG@10 or MRR@10.
+The 8th column (index 7) is used as the metric — either NDCG@10 or MRR@10.
 Rows are averaged over the four retriever combos per (Dataset, Method).
 
 Output columns: dataset, model, <metric_name>
@@ -39,19 +39,19 @@ def load_and_validate(path: str) -> tuple[pd.DataFrame, str]:
     missing = REQUIRED_COLUMNS - set(df.columns)
     if missing:
         sys.exit(f"ERROR [{path}]: missing columns: {sorted(missing)}")
-    if len(df.columns) < 7:
-        sys.exit(f"ERROR [{path}]: expected at least 7 columns, got {len(df.columns)}")
+    if len(df.columns) < 8:
+        sys.exit(f"ERROR [{path}]: expected at least 8 columns, got {len(df.columns)}")
 
     # Normalize dataset aliases (e.g. "acord-entire-corpus" → "acord").
     df["Dataset"] = df["Dataset"].replace(DATASET_ALIASES)
 
-    # Column index 6 must be NDCG@10 or MRR@10; cross-check against the dataset.
-    metric_col = df.columns[6]
+    # Column index 7 must be NDCG@10 or MRR@10; cross-check against the dataset.
+    metric_col = df.columns[7]
     for dataset in df["Dataset"].unique():
         expected = DATASET_EXPECTED_METRIC.get(dataset)
         if expected is not None and metric_col != expected:
             sys.exit(
-                f"ERROR [{path}]: column 6 is '{metric_col}' but dataset "
+                f"ERROR [{path}]: column 7 is '{metric_col}' but dataset "
                 f"'{dataset}' expects '{expected}' — check column order."
             )
 
