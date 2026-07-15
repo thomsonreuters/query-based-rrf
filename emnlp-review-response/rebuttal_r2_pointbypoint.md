@@ -68,40 +68,21 @@
 We thank Reviewer zkNL for the careful reading. We address each point below.
 
 
-## W1 — "Limited methodological novelty; empirical characterization rather than a new method."
+## W1 — Novelty and contribution framing
 
-We appreciate the reviewer raising this, and we understand the expectation of a new fusion or optimization method. We would like to clarify our intended contribution. By design, the paper is a diagnostic and structural study rather than a proposal for a single new fusion model, and the paper states this explicitly (§3.3: "The spectrum is not a proposal for a single new method"). The contribution is not another predictor but the finding the reviewer credits as novel: that the per-query optimal WRRF weight is a set-valued interval, not a point. 
-Additionally, we contribute an analysis of the quality-latency trade-off across query-adaptive methods, compared to standard 50-50 RRF and the mean optimal weight setting.  We show that quality and latency do not trade off monotonically: on responsive datasets, a CPU-only method recovers much of the achievable headroom at a fraction of the cost of an LLM call, while on harder configurations even LLM-based methods recover only a small fraction of it. This motivates the tiered decision framework we present in §6, which maps a practitioner's constraints, labeled training data, GPU access, latency budget, to the appropriate method class.
+This is a diagnostic study. §3.3 indicates ("The spectrum is not a proposal for a single new method"). Our main contribution is what the reviewer already credits as novel, that the per-query optimal WRRF weight is a set-valued interval, not a point.
 
-
-
-
-## W2 — "Oracle relies on a fixed-step grid search; sensitivity of the intervals to discretization is not investigated."
-
-We thank the reviewer for this suggestion. We added a discretization sensitivity analysis comparing the 0.01 grid used in the paper (101 weights) against a 10× finer 0.001 grid (1001
-weights), measuring per query (i) the change in the
-total optimal-interval length, (ii) the disagreement between the two intervals (union −
-intersection), and (iii) the resulting change in the retrieval metric at the mean best weight.
-Across all four datasets and their four retriever pairs (16 configurations), the effect is negligible:
-
-- interval length changes by only 0.002–0.007 on the [0,1] weight scale,
-- interval disagreement is 0.004–0.011 (the coarse and fine intervals almost entirely coincide), and
-- the retrieval metric changes by < 0.001 (≤ 0.0007) at the best weight.
-
-This is expected: the retrieval metric is piecewise-constant in w, so a finer grid only sharpens
-the interval endpoints rather than creating or removing intervals. The measurements confirm that the 0.01 grid already localizes them to within ~0.01 with
-no meaningful effect on the metric, so the interval statistics reported in the paper are not artifacts of the chosen resolution. 
+We also extensively analyze quality-latency trade-off across query-adaptive methods, standard RRF, and a competitive mean-optimal-weight baseline. In many cases a CPU-only method for fusion weight assignment recovers much of the achievable headroom at a fraction of the cost of an LLM call. Some datasets have harder-to-predict fusion weights. On these, even LLM methods recover only a small amount of headroom. This motivates our tiered decision framework in §6, which maps availability of labeled training data, GPU access, and latency constraints to the right method class.
 
 
-## W3 — "Lacks statistical significance tests for the reported improvements."
+## W2 — Discretization sensitivity
 
-We have added per-query significance testing of every fusion method against standard
-RRF using a paired t-test over 128 tests (8 query-adaptive methods × 16
-dataset combinations). We control the false discovery rate via the Benjamini–Hochberg procedure
-(Benjamini & Hochberg, 1995).
+We reran the oracle grid search at 0.001 against the paper's 0.01 grid across all 16 retriever configurations. The effect on interval length, interval disagreement, and the chosen retrieval metric for each dataset at the mean best weight is negligible: length shifts by only 0.002–0.007, disagreement is 0.004–0.011, and the retrieval metric changes by at most 0.0007. The retrieval metrics (NDCG and MRR) are piecewise-constant in w, so a finer grid sharpens interval endpoints without creating or removing them.
 
-Of the 128 comparisons, 75 are significant at α = 0.05 and 74 remain significant after FDR
-correction (method significantly better than RRF):
+
+## W3 — Statistical significance testing
+
+We added per-query significance testing of every method against standard RRF: a paired t-test across 128 comparisons (8 methods × 16 configurations), FDR-controlled via Benjamini–Hochberg (1995). 75 of 128 are significant at α = 0.05, and 74 survive FDR correction:
 
 | dataset | eval queries | sig. improvements over RRF (of 32) | survive FDR (q ≤ 0.05) |
 |---|:--:|:--:|:--:|
@@ -110,16 +91,14 @@ correction (method significantly better than RRF):
 | NFCorpus | 323 | 10 / 32 | 10 / 32 |
 | ACORD | 57 | 4 / 32 | 3 / 32 |
 
-On both large benchmarks (MSMARCO, NQ) nearly every improvement over RRF survives FDR correction. On the very small ACORD dataset only 3 of 32 reach significance under FDR. 
- 
+Nearly every improvement survives FDR on the two large benchmarks (MSMARCO, NQ); on small ACORD only 3 of 32 remain significant.
+
 We also verified that many query-adaptive methods beat not just RRF but the dataset-specific mean-optimal weight (48/128 significant, 46 surviving FDR). Ultimately our contribution is a framework for practitioners to determine the most appropriate fusion method given their dataset characteristics and deployment requirements.
 
 
-## W4 — "Experiments limited to two-way sparse–dense fusion; generalization to k>2 is open."
+## W4 — Generalization beyond k=2
 
-We agree, and we ran additional experiments in the three-retriever setting. We fuse
-BM25 + RM3 + Qwen3 (Qwen3 is the strongest dense retriever on every dataset; BM25 and RM3
-trade places across datasets), and re-run two of the strongest query-adaptive methods from the k=2 setting against a k=3 RRF baseline. We select two strongest methods that sit in different tiers of our decision framework (§6): the passage-conditioned ModernBERT predictor (Tier 2, a fine-tuned transformer encoder, conditioned on each retriever's top-1 passage) and the few-shot Ministral predictor (Tier 3, in-context LLM inference, conditioned on the query alone). Statistical significance is a per-query paired t-test comparing each method to the equal-weight RRF baseline.
+We agree, and ran a three-retriever pilot: BM25 + RM3 + Qwen3 with the two strongest methods — ModernBERT passage-conditioned (Tier 2) and Ministral few-shot (Tier 3) — against a k=3 RRF baseline, with a per-query paired t-test.
 
 | dataset | metric | best k=2 method | k=3 RRF | k=3 query-adaptive (best) | oracle ceiling k=2 → k=3 |
 |---|:--:|:--:|:--:|:--:|:--:|
@@ -128,23 +107,20 @@ trade places across datasets), and re-run two of the strongest query-adaptive me
 | NQ | mrr@10 | 0.447 | 0.314 | 0.435 (p<0.001) | 0.549 → 0.578 |
 | ACORD | ndcg@10 | 0.159 | 0.132 | 0.148 (p=0.21) | 0.231 → 0.244 |
 
-Three takeaways follow. 
-First, query-adaptive methods extend beyond k=2 and still beat standard RRF (p < 0.001 on both large benchmarks). 
-Second, the headroom grows with k: the per-query oracle ceiling rises when the third retriever is added (+0.009 to +0.029 absolute over the best k=2 pair), and the oracle−RRF gap is larger at k=3 than for any k=2 pair (e.g. NQ 0.264 vs ≤0.220, MSMARCO 0.230 vs ≤0.175), so the k=2 study is a lower bound on achievable headroom. 
-Third, recovering that headroom becomes harder as k grows, because the space of candidate weight settings explodes. With a grid step size of 0.01, the k=2 setting affords 101 possible combinations. The k=3 setting has 5,151 possible settings. Because RM3 and BM25 are similar retrievers, it may well be the case that the simpler k=2 setting with BM25 and Qwen captures most of the range of effective fusion weights predictable from the query, and adding the third retriever provides little value. 
+Query-adaptive methods are significantly better than RRF at k=3 (p<0.001). Headroom grows with k. The oracle ceiling rises 0.009–0.029 absolute over the best k=2 pair and the oracle−RRF gap widens (e.g. NQ 0.264 vs ≤0.220, MSMARCO 0.230 vs ≤0.175), so k=2 is a lower bound. Recovery via prediction gets harder, as the candidate space explodes from 101 settings at k=2 to 5,151 at k=3. Because RM3 and BM25 are similar retrievers, the simpler k=2 setting with BM25 and Qwen may capture most of the range of effective fusion weights predictable from the query such that adding the third retriever provides little value.
 
 
-## C1 — Practical implications of the interval-valued formulation
+## C1 — Practical implications
 
-The interval structure carries three concrete design implications beyond interval-aware supervision, and our decision framework (§6) operationalizes them.
+In addition to our contribution of an interval-aware loss, the interval structure gives three design implications that our decision framework (§6) operationalizes.
 
-First, it provides a signal for whether dynamic weighting is worth doing at all. Before deploying any predictor, a practitioner can measure two quantities on a labeled train split: the fraction of queries whose optimal interval already contains 0.5 (Figure 1), and the dataset-level headroom (Oracle−RRF)/Oracle (§6.1). When many queries are already optimal at 0.5 or the headroom is small, as on ACORD and NFCorpus, per-query prediction cannot pay off, and standard RRF (T0) or a single dataset-level constant (T1a) is the right choice with no query-time model warranted.
+Before deploying any predictor, a practitioner can measure two quantities on a labeled train split: the fraction of queries whose optimal interval already contains 0.5 (Figure 1), and the dataset-level headroom relative to the oracle (§6.1). When many queries are already optimal at 0.5 or the headroom is small, per-query prediction has limited utility, and standard RRF (T0) or a dataset-level constant (T1a) is the right choice with no query-time model warranted.
 
-Second, the interval width relaxes the precision a predictor needs. Because the optimum is a range rather than a point, any prediction that lands inside the interval is optimal, so a cheap low-capacity predictor is often sufficient. This is why our CPU-only T1a and T1b as well as encoder-based T2 methods recover headroom comparable to the far more expensive LLM predictors on responsive datasets (§5.1, Table 2): the task does not require hitting an exact point.
+Since the optimum is a range, any prediction inside it is optimal, so a cheap predictor often suffices — CPU-only (T1) and encoder (T2) methods recover headroom comparable to the far more expensive LLM predictors on responsive datasets (§5.1, Table 2).
 
-Third, only when the headroom is large and the optimum is genuinely query dependent, with few queries optimal at 0.5 and a wide oracle-to-RRF gap as on MS MARCO and NQ, does a higher tier become justified, and even then the bottleneck is the predictability of the optimum from the query rather than the choice of method (§5.2). The interval view thus reframes the practitioner's question from which predictor is best to whether this dataset needs per query weighting at all and, if so, at what tier, which is the mapping our framework provides.
+A higher tier earns its cost only when headroom is large and query-dependent (MS MARCO, NQ), and even there the bottleneck is predicting the optimum, not the method (§5.2). This turns "which predictor is best" into "does this dataset need per-query weighting, and at what tier."
 
 
 ## C2 — Writing / typos
 
-We thank the reviewer for catching these and we have fixed the specific instances.
+We thank the reviewer for catching these and have fixed them.
