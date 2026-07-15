@@ -92,10 +92,11 @@ We thank the reviewer for raising this. We are committed to full reproducibility
 ## W5. Limited investigation of why prediction is difficult
 
 We would first gently note that recovery is not uniformly small. Under an evaluation over all queries,
-rather than only those with a non-empty optimal-weight set, strong query-adaptive methods recover up to 61
-percent of the available headroom on NQ (RM3+Qwen3) and exceed 25 percent on several MSMARCO and NQ
-configurations. That said, a gap remains. To investigate, we ran a query-level error analysis relating
-query properties to prediction difficulty.
+rather than only those with a non-empty optimal-weight set, strong query-adaptive methods recover up to 61% 
+of the available headroom on NQ (RM3+Qwen3) and exceed 25 percent on several MSMARCO and NQ
+configurations. That said, a gap remains. To investigate, we ran a query-level error analysis relating query 
+properties to prediction difficulty across three methods (mean optimal weight, 
+ModernBERT passage-conditioned, and LLM few-shot Ministral).
 
 We define prediction difficulty for a query as the gap between the predicted fusion weight and the
 nearest edge of that query's oracle-optimal weight interval, and zero if the prediction already falls
