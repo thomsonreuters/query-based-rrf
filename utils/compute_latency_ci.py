@@ -36,7 +36,7 @@ from collections import defaultdict
 from statistics import mean, stdev
 
 DEFAULT_CSV_PATH = (
-    "/Users/a6128162/Downloads/wrrf tracker - timing - selected models.csv"
+    ""
 )
 
 # Two-sided 95% t critical values (scipy.stats.t.ppf(0.975, df))
