@@ -14,15 +14,47 @@ Compared against a per-query oracle bounding achievable performance, three findi
 
 ---
 
+## Decision Framework for Fusion Method Selection
+
+Per-query inference latency clusters into three tiers: **T0/T1** need no forward pass, **T2** runs a fine-tuned encoder (~6 ms), and **T3** calls an LLM (~215 ms). The quality-vs-latency plot shown below (see [IR Performance–Latency Tradeoff Analysis](#ir-performance-latency-tradeoff-analysis)) motivates this tiering. Sub-tiers share latency/infra but differ in training requirements.
+
+| Tier | Sub-tier | Method | Latency (95% CI) | Infra | Training data | Query-aware | Top-1 retrieval-aware |
+|---|---|---|---|---|---|---|---|
+| T0 | – | RRF (w=0.5) | <1 µs | CPU | no | no | no |
+| T1 | T1a | Mean Optimal Weight | <1 µs | CPU | yes | no | no |
+| T1 | T1b | Linear Regression | 265 ± 3 µs | CPU | yes | yes | no |
+| T2 | T2a | Small Encoder LM | 5.24 ± 0.04 ms | GPU (self-host) | yes | yes | no |
+| T2 | T2b | Small Encoder LM | 8.46 ± 0.02 ms | GPU (self-host) | yes | yes | yes |
+| T3 | T3a | DAT (zero-shot) | 205.5 ± 8.6 ms | GPU / LLM API | no | yes | yes |
+| T3 | T3b | Few-shot LLM | 225.4 ± 8.4 ms | GPU / LLM API | yes | yes | no |
+
+**Two prerequisite checks:**
+
+- **Dataset sensitivity** — compute `(Oracle − RRF) / Oracle` (headroom) and compare it to a threshold δ, the minimum gain that justifies a higher tier.
+- **Training data** — T1, T2, and T3b all need labeled queries; without labels, only T0 or T3a apply.
+
+**Tier properties:**
+
+- **T0** — use when no labels or LLM are available, or as a zero-latency default.
+- **T1** — learned weight on CPU. T1a gives a small, consistent gain on responsive datasets; T1b performs similarly. Good when no GPU is available or a simple deployable model is preferred.
+- **T2** — same latency class across sub-tiers (~6 ms); on responsive datasets, recovers much of the achievable gain at a fraction of LLM latency. T2b is competitive across datasets and the strongest Tier 2 method overall, and is best when a GPU and top-1 passages are available at fusion time.
+- **T3** — LLM-based. T3a needs no labeled data; T3b is strongest on NQ and MS MARCO. Run-to-run variance is high, especially with sampling temperature > 0. Best when fusion is the final stage and the latency budget allows an LLM call — otherwise that budget may better serve a downstream re-ranker. Non-retrieval-aware methods (T0–T2a, T3b) depend only on the query.
+
+![Per-query latency vs. ranking quality across four datasets](./docs/images/tradeoff_all.png)
+
+*Per-query latency vs. ranking quality across four datasets (MRR@10 for MS MARCO and NQ, nDCG@10 for ACORD and NFCorpus). Each point averages over 2×2 retriever combinations per dataset.*
+
+---
+
 ## Configuration
 
 All scripts resolve data, results, and model paths through environment variables. Set these before running any script:
 
 | Variable | Used for | Default (cluster) |
 |---|---|---|
-| `BASE_DATA_DIR` | Dataset CSV files | `/extra/huaiyaom0/tr-intern/wrrf/dataset` |
-| `BASE_RESULTS_DIR` | Output `.trec` / metrics files | `/extra/huaiyaom0/tr-intern/wrrf/results` |
-| `BASE_EXPERIMENT_DIR` | Saved model checkpoints | `/extra/huaiyaom0/tr-intern/wrrf/experiment` |
+| `BASE_DATA_DIR` | Dataset CSV files | `/path/to/your/dataset` |
+| `BASE_RESULTS_DIR` | Output `.trec` / metrics files | `/path/to/your/results` |
+| `BASE_EXPERIMENT_DIR` | Saved model checkpoints | `/path/to/your/experiment` |
 
 Copy `.env.local`, fill in your paths, and save it as `.env`:
 
@@ -209,35 +241,4 @@ python utils/analyze_ir_latency_tradeoff.py \
     --output-dir ./results
 ```
 
----
-
-## Decision Framework for Fusion Method Selection
-
-Per-query inference latency clusters into three tiers: **T0/T1** need no forward pass, **T2** runs a fine-tuned encoder (~6 ms), and **T3** calls an LLM (~215 ms). The quality-vs-latency plot produced above motivates this tiering. Sub-tiers share latency/infra but differ in training requirements.
-
-| Tier | Sub-tier | Method | Latency (95% CI) | Infra | Training data | Query-aware | Top-1 retrieval-aware |
-|---|---|---|---|---|---|---|---|
-| T0 | – | RRF (w=0.5) | <1 µs | CPU | no | no | no |
-| T1 | T1a | Mean Optimal Weight | <1 µs | CPU | yes | no | no |
-| T1 | T1b | Linear Regression | 265 ± 3 µs | CPU | yes | yes | no |
-| T2 | T2a | Small Encoder LM | 5.24 ± 0.04 ms | GPU (self-host) | yes | yes | no |
-| T2 | T2b | Small Encoder LM | 8.46 ± 0.02 ms | GPU (self-host) | yes | yes | yes |
-| T3 | T3a | DAT (zero-shot) | 205.5 ± 8.6 ms | GPU / LLM API | no | yes | yes |
-| T3 | T3b | Few-shot LLM | 225.4 ± 8.4 ms | GPU / LLM API | yes | yes | no |
-
-**Two prerequisite checks:**
-
-- **Dataset sensitivity** — compute `(Oracle − RRF) / Oracle` (headroom) and compare it to a threshold δ, the minimum gain that justifies a higher tier.
-- **Training data** — T1, T2, and T3b all need labeled queries; without labels, only T0 or T3a apply.
-
-**Tier properties:**
-
-- **T0** — use when no labels or LLM are available, or as a zero-latency default.
-- **T1** — learned weight on CPU. T1a gives a small, consistent gain on responsive datasets; T1b performs similarly. Good when no GPU is available or a simple deployable model is preferred.
-- **T2** — same latency class across sub-tiers (~6 ms); on responsive datasets, recovers much of the achievable gain at a fraction of LLM latency. T2b is competitive across datasets and the strongest Tier 2 method overall, and is best when a GPU and top-1 passages are available at fusion time.
-- **T3** — LLM-based. T3a needs no labeled data; T3b is strongest on NQ and MS MARCO. Run-to-run variance is high, especially with sampling temperature > 0. Best when fusion is the final stage and the latency budget allows an LLM call — otherwise that budget may better serve a downstream re-ranker. Non-retrieval-aware methods (T0–T2a, T3b) depend only on the query.
-
-![Per-query latency vs. ranking quality across four datasets](./docs/images/tradeoff_all.png)
-
-*Per-query latency vs. ranking quality across four datasets (MRR@10 for MS MARCO and NQ, nDCG@10 for ACORD and NFCorpus). Each point averages over 2×2 retriever combinations per dataset.*
 

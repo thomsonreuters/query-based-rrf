@@ -203,7 +203,7 @@ python train.py
 **Before running**, update `base_data_dir` in `run.py` (line 7):
 
 ```python
-base_data_dir = "/extra/huaiyaom0/tr-intern/wrrf/dataset"  # change to your dataset root
+base_data_dir = "/path/to/your/dataset"  # change to your dataset root
 ```
 
 ### Expected Outputs
@@ -309,7 +309,7 @@ python test.py
 
 | Script       | Path type | Value                                     |
 |--------------|-----------|-------------------------------------------|
-| `run.py`     | absolute  | `/extra/huaiyaom0/tr-intern/wrrf/dataset` |
+| `run.py`     | absolute  | `/path/to/your/dataset`                   |
 | `run_mul.py` | relative  | `../../../wrrf/dataset`                   |
 
 ### Expected Outputs
@@ -364,9 +364,8 @@ pip install sentence-transformers rank-bm25 scipy
 
 ### Prerequisites
 
-Access to the TR internal Azure AI Platform (`aiplatform.gcs.int.thomsonreuters.com`) with
-workspace `PracticalLawxOhJ`. Credentials are fetched automatically at runtime via a POST
-request — no manual API key setup is required on the TR network.
+Access to an internal Azure-hosted GPT-4o endpoint; credentials are fetched automatically at
+runtime via a POST request — no manual API key setup is required.
 
 ### Configuration
 
@@ -465,7 +464,7 @@ Scores are min-max normalized per query per retriever before fusion.
 
 | Backend | Details |
 |---------|---------|
-| `proxy` | TR internal LLM proxy (`labs_pl_common`), GPT-5.2 |
+| `proxy` | Internal LLM proxy, GPT-5.2 |
 | `bedrock` | AWS Bedrock, `qwen.qwen3-32b-v1:0` via boto3 |
 
 Switch backend by setting `BACKEND` in `main()`.
