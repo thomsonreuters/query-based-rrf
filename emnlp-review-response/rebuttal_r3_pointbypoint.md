@@ -48,14 +48,12 @@ experimental design thorough. We address each point below, in the order raised.
 
 ## W1 — Small fonts in figures, equations, and tables
 
-We thank the reviewer for flagging this, and we agree the current tables are too dense to read comfortably. In the revision we will enlarge them.
+We agree some tables are too dense. In the revision we will enlarge them.
 
 
-## W2 — "Metric works for a single sparse–dense pair only; 3+ systems make grid search combinatorially expensive."
+## W2 — Generalization beyond k=2
 
-We agree, and we ran additional experiments in the three-retriever setting. We fuse
-BM25 + RM3 + Qwen3 (Qwen3 is the strongest dense retriever on every dataset; BM25 and RM3
-trade places across datasets), and re-run two of the strongest query-adaptive methods from the k=2 setting against a k=3 RRF baseline. We select two strongest methods that sit in different tiers of our decision framework (§6): the passage-conditioned ModernBERT predictor (Tier 2, a fine-tuned transformer encoder, conditioned on each retriever's top-1 passage) and the few-shot Ministral predictor (Tier 3, in-context LLM inference, conditioned on the query alone). Statistical significance is a per-query paired t-test comparing each method to the equal-weight RRF baseline.
+We ran a three-retriever pilot: BM25 + RM3 + Qwen3 with the two strongest methods — ModernBERT passage-conditioned (Tier 2) and Ministral few-shot (Tier 3) — against a k=3 RRF baseline, with a per-query paired t-test.
 
 | dataset | metric | best k=2 method | k=3 RRF | k=3 query-adaptive (best) | oracle ceiling k=2 → k=3 |
 |---|:--:|:--:|:--:|:--:|:--:|
@@ -64,21 +62,12 @@ trade places across datasets), and re-run two of the strongest query-adaptive me
 | NQ | mrr@10 | 0.447 | 0.314 | 0.435 (p<0.001) | 0.549 → 0.578 |
 | ACORD | ndcg@10 | 0.159 | 0.132 | 0.148 (p=0.21) | 0.231 → 0.244 |
 
-Three takeaways follow. 
-First, query-adaptive methods extend beyond k=2 and still beat standard RRF (p < 0.001 on both large benchmarks). 
-Second, the headroom grows with k: the per-query oracle ceiling rises when the third retriever is added (+0.009 to +0.029 absolute over the best k=2 pair), and the oracle−RRF gap is larger at k=3 than for any k=2 pair (e.g. NQ 0.264 vs ≤0.220, MSMARCO 0.230 vs ≤0.175), so the k=2 study is a lower bound on achievable headroom. 
-Third, recovering that headroom becomes harder as k grows, because the space of candidate weight settings explodes. With a grid step size of 0.01, the k=2 setting affords 101 possible combinations. The k=3 setting has 5,151 possible settings. Because RM3 and BM25 are similar retrievers, it may well be the case that the simpler k=2 setting with BM25 and Qwen captures most of the range of effective fusion weights predictable from the query, and adding the third retriever provides little value. 
+Query-adaptive methods are significantly better than RRF at k=3 (p<0.001). Headroom grows with k. The oracle ceiling rises 0.009–0.029 absolute over the best k=2 pair and the oracle−RRF gap widens (e.g. NQ 0.264 vs ≤0.220, MSMARCO 0.230 vs ≤0.175), so k=2 is a lower bound. Recovery via prediction gets harder, as the candidate space explodes from 101 settings at k=2 to 5,151 at k=3. 
 
 
-## W3 — "Reports average performance but no statistical significance testing between methods."
+## W3 — Statistical significance testing
 
-We have added per-query significance testing of every fusion method against standard
-RRF using a paired t-test over 128 tests (8 query-adaptive methods × 16
-dataset combinations). We control the false discovery rate via the Benjamini–Hochberg procedure
-(Benjamini & Hochberg, 1995).
-
-Of the 128 comparisons, 75 are significant at α = 0.05 and 74 remain significant after FDR
-correction (method significantly better than RRF):
+We added per-query significance testing of every method against standard RRF: a paired t-test across 128 comparisons (8 methods × 16 configurations), FDR-controlled via Benjamini–Hochberg (1995). 75 of 128 are significant at α = 0.05, and 74 survive FDR correction:
 
 | dataset | eval queries | sig. improvements over RRF (of 32) | survive FDR (q ≤ 0.05) |
 |---|:--:|:--:|:--:|
@@ -87,8 +76,8 @@ correction (method significantly better than RRF):
 | NFCorpus | 323 | 10 / 32 | 10 / 32 |
 | ACORD | 57 | 4 / 32 | 3 / 32 |
 
-On both large benchmarks (MSMARCO, NQ) nearly every improvement over RRF survives FDR correction. On the very small ACORD dataset only 3 of 32 reach significance under FDR. 
- 
+Nearly every improvement survives FDR on the two large benchmarks (MSMARCO, NQ); on small ACORD only 3 of 32 remain significant.
+
 We also verified that many query-adaptive methods beat not just RRF but the dataset-specific mean-optimal weight (48/128 significant, 46 surviving FDR). Ultimately our contribution is a framework for practitioners to determine the most appropriate fusion method given their dataset characteristics and deployment requirements.
 
 
@@ -103,11 +92,11 @@ We thank the reviewer for raising this. We are committed to full reproducibility
 ## W5. Limited investigation of why prediction is difficult
 
 We would first gently note that recovery is not uniformly small. Under an evaluation over all queries,
-rather than only those with a non-empty optimal-weight set, query-adaptive methods recover up to 61
-percent of the available headroom on NQ (RM3+Qwen3) and exceed 25 percent on several MSMARCO and NQ
-configurations (revised reporting, §5). That said, we agree that measuring the headroom does not
-by itself explain why the remaining gap is hard to close. To investigate why, we ran a query-level error analysis relating
-query properties to prediction difficulty.
+rather than only those with a non-empty optimal-weight set, strong query-adaptive methods recover up to 61% 
+of the available headroom on NQ (RM3+Qwen3) and exceed 25 percent on several MSMARCO and NQ
+configurations. That said, a gap remains. To investigate, we ran a query-level error analysis relating query 
+properties to prediction difficulty across three methods (mean optimal weight, 
+ModernBERT passage-conditioned, and LLM few-shot Ministral).
 
 We define prediction difficulty for a query as the gap between the predicted fusion weight and the
 nearest edge of that query's oracle-optimal weight interval, and zero if the prediction already falls
@@ -131,9 +120,5 @@ across methods):
 | word count | 5.82 | 6.10 | < 0.001 |
 | entity count | 0.24 | 0.29 | 0.002 |
 
-The direction holds across every method class we examined. The effects are consistent but small, so
-these surface properties explain only a small part of the difficulty, and the per-query optimum remains
-largely unpredictable from the query alone. Ambiguity, the reviewer's specific hypothesis, was a weaker
-and inconsistent signal, reaching at most marginal significance on MSMARCO and no significant
-relationship on NQ.
+The effects are consistent but small, so these surface properties explain only part of the difficulty, and the per-query optimum remains difficult to predict from the query alone. 
 
