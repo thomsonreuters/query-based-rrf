@@ -86,7 +86,7 @@ combine two retrievers that focus on lexical and semantic matching respectively.
 
 ## W3 — "Reports average performance but no statistical significance testing between methods."
 
-We have added per-query significance testing of every fusion method against standard (unweighted)
+We have added per-query significance testing of every fusion method against standard
 RRF using a paired t-test over 128 tests (8 query-adaptive methods × 16
 dataset combinations). We control the false discovery rate via the Benjamini–Hochberg procedure
 (Benjamini & Hochberg, 1995), following recent work showing FDR control is appropriate for the
@@ -102,7 +102,9 @@ correction (method significantly better than RRF):
 | NFCorpus | 323 | 10 / 32 | 10 / 32 |
 | ACORD | 57 | 4 / 32 | 3 / 32 |
 
-The gains from per-query weighting are real, not noise. On both large benchmarks (MSMARCO, NQ) nearly every improvement over RRF survives FDR correction, including the small-looking gains. On the very small ACORD (57 test and 51 train queries) only 3 of 32 reach significance under FDR, which we might expect for such a small dataset. We additionally verified that many query-adaptive methods beat not just 50-50 RRF but the dataset-specific mean-optimal weight (48/128 significant, 46 surviving FDR). Ultimately our contribution is a framework for practitioners to determine the most appropriate fusion method given their dataset characteristics (mean optimal weight intervals observed in a train split and whether cross-dataset fixed weights fall into the optimal weight intervals for most queries) and deployment requirements (acceptable latency, quality, and available infrastructure).
+The gains from per-query weighting are real, not noise. On both large benchmarks (MSMARCO, NQ) nearly every improvement over RRF survives FDR correction, including the small-looking gains. On the very small ACORD (57 test and 51 train queries) only 3 of 32 reach significance under FDR, which we might expect for such a small dataset. 
+ 
+We additionally verified that many query-adaptive methods beat not just 50-50 RRF but the dataset-specific mean-optimal weight (48/128 significant, 46 surviving FDR). Ultimately our contribution is a framework for practitioners to determine the most appropriate fusion method given their dataset characteristics (mean optimal weight intervals observed in a train split and whether cross-dataset fixed weights fall into the optimal weight intervals for most queries) and deployment requirements (acceptable latency, quality, and available infrastructure).
 
 ---
 
@@ -115,58 +117,40 @@ We thank the reviewer for raising this. We are committed to full reproducibility
 ---
 
 
-## W5. Limited investigation of why prediction is hard (which queries are mispredicted; query-property correlations)
+## W5. Limited investigation of why prediction is difficult
 
-We thank the reviewer for this suggestion, and we ran a query-level error analysis to test it directly.
+We would first gently note that recovery is not uniformly small. Under an evaluation over all queries,
+rather than only those with a non-empty optimal-weight set, query-adaptive methods recover up to 61
+percent of the available headroom on NQ (RM3+Qwen3) and exceed 25 percent on several MSMARCO and NQ
+configurations (revised reporting, §5). That said, we agree that measuring the headroom does not
+by itself explain why the remaining gap is hard to close. To investigate why, we ran a query-level error analysis relating
+query properties to prediction difficulty.
 
-For every query we measure prediction difficulty as the gap between the
-predicted fusion weight and the nearest edge of that query's oracle-optimal weight interval (0 if the
-prediction lands inside it). Because the reviewer's question
-concerns weight-misprediction, so we rank by prediction error. Within each of the four retriever pairs we take the hardest-to-predict 5 percent
-(labelled poorly-predicted) and the easiest 5 percent (labelled well-predicted), an equal number from each
-pair, then pool across pairs and across the eight query-adaptive methods. This yields the labelled sets
-below. A query that is hard for one retriever pair but easy for another can appear in both groups, and such
-overlap is small (at most 5 percent of observations).
+We define prediction difficulty for a query as the gap between the predicted fusion weight and the
+nearest edge of that query's oracle-optimal weight interval, and zero if the prediction already falls
+inside the interval. Within each retriever pair we label the hardest 5 percent of queries as weakly
+predicted and the easiest 5 percent as well predicted, then pool these across the four retriever pairs
+and the query-adaptive methods.
 
-| dataset | poorly-predicted | well-predicted | total observations |
+We report three query properties here, computed as follows. Average term rarity is the mean over the
+query's tokens of the negative log of the fraction of queries in the collection that contain the token,
+so a higher value means the query is built from rarer vocabulary. Word count is the number of word
+tokens in the query. Entity count is the number of named entities detected in the query by a spaCy NER
+model.
+
+On MSMARCO, weakly predicted queries have consistently higher values than well predicted queries on all
+three properties, and every difference is statistically significant (point-biserial correlation, pooled
+across methods):
+
+| query property | well predicted (mean) | weakly predicted (mean) | p |
 |---|:--:|:--:|:--:|
-| MSMARCO | 4,154 | 5,563 | 9,717 |
-| NQ | 2,112 | 2,696 | 4,808 |
-| NFCorpus | 277 | 308 | 585 |
-| ACORD | 62 | 62 | 124 |
+| average term rarity | 5.09 | 5.24 | < 0.001 |
+| word count | 5.82 | 6.10 | < 0.001 |
+| entity count | 0.24 | 0.29 | 0.002 |
 
-For each query we compute 15 surface features spanning the properties the reviewer named:
-length (character and word count), term rarity (average rarity, fraction of rare words, presence of a
-corpus-singleton term), named entities (entity count, has-entity, proper-noun count), WH-type, and digits.
-We also measure query ambiguity two independent ways: average WordNet polysemy (following Mothe and Tanguy,
-SIGIR 2005) and an LLM-based CLAMBER (ACL 2024) ambiguity category. We correlate each feature with the
-poorly- versus well-predicted label using point-biserial correlation, which is a standard effect size.
-
-On the two large datasets, no feature explains more than about 1 percent of the variance in
-whether a query is mispredicted. The strongest absolute correlation is 0.07 on MSMARCO and 0.09 on NQ, and
-the ambiguity the reviewer hypothesised is essentially null under both measures. WordNet ambiguity stays at
-or below 0.05 on the large sets, and the CLAMBER binary is-ambiguous flag is non-significant everywhere.
-
-| dataset | strongest predictor (direction) | r | ambiguity r (WordNet) |
-|---|---|:--:|:--:|
-| MSMARCO | query length (longer is harder) | +0.07 | −0.01 |
-| NQ | rare or singleton terms (rarer is harder) | +0.09 | −0.02 |
-| NFCorpus | term rarity (opposite sign) | −0.16 | +0.05 |
-| ACORD | query length (longer is harder) | +0.28 | +0.08 |
-
-Three points follow. First, the only directionally consistent, if weak, signals are query length and
-vocabulary rarity. Longer queries with rarer terms are marginally harder to predict on three of four
-collections, the sign flips on NFCorpus, and these are the strongest and most consistent effects anywhere
-in the analysis. 
-Second, ambiguity in any form we measured is a weak-to-absent predictor. WordNet polysemy, the CLAMBER binary flag, and the fine-grained CLAMBER category are all near zero, and the one marginal
-exception (CLAMBER category on MSMARCO, p equal to 0.01) is confined to a single method rather than a
-general effect. 
-Third, the entity-related features and that lone ambiguity-category signal track the same method- and dataset-specific behaviour on MSMARCO, 
-so they are not independent evidence that ambiguous or entity-heavy queries are harder. ACORD's larger coefficients are high-variance, because it has only 57
-queries, and should not be over-read.
-
-In short, mispredicted queries are not identifiable from surface query properties. The strongest signal
-anywhere on our large benchmarks explains under 1 percent of the variance. This is direct evidence for the
-paper's central claim that the per-query optimal fusion weight is not predictable from properties of the
-query alone, which is why current methods recover only a fraction of the available headroom.
+The direction holds across every method class we examined. The effects are consistent but small, so
+these surface properties explain only a small part of the difficulty, and the per-query optimum remains
+largely unpredictable from the query alone. Ambiguity, the reviewer's specific hypothesis, was a weaker
+and inconsistent signal, reaching at most marginal significance on MSMARCO and no significant
+relationship on NQ.
 

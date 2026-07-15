@@ -100,7 +100,7 @@ no meaningful effect on the metric, so the interval statistics reported in the p
 
 ## W3 — "Lacks statistical significance tests for the reported improvements."
 
-We have added per-query significance testing of every fusion method against standard (unweighted)
+We have added per-query significance testing of every fusion method against standard
 RRF using a paired t-test over 128 tests (8 query-adaptive methods × 16
 dataset combinations). We control the false discovery rate via the Benjamini–Hochberg procedure
 (Benjamini & Hochberg, 1995), following recent work showing FDR control is appropriate for the
@@ -116,7 +116,9 @@ correction (method significantly better than RRF):
 | NFCorpus | 323 | 10 / 32 | 10 / 32 |
 | ACORD | 57 | 4 / 32 | 3 / 32 |
 
-The gains from per-query weighting are real, not noise. On both large benchmarks (MSMARCO, NQ) nearly every improvement over RRF survives FDR correction, including the small-looking gains. On the very small ACORD (57 test and 51 train queries) only 3 of 32 reach significance under FDR, which we might expect for such a small dataset. We additionally verified that many query-adaptive methods beat not just 50-50 RRF but the dataset-specific mean-optimal weight (48/128 significant, 46 surviving FDR). Ultimately our contribution is a framework for practitioners to determine the most appropriate fusion method given their dataset characteristics (mean optimal weight intervals observed in a train split and whether cross-dataset fixed weights fall into the optimal weight intervals for most queries) and deployment requirements (acceptable latency, quality, and available infrastructure).
+The gains from per-query weighting are real, not noise. On both large benchmarks (MSMARCO, NQ) nearly every improvement over RRF survives FDR correction, including the small-looking gains. On the very small ACORD (57 test and 51 train queries) only 3 of 32 reach significance under FDR, which we might expect for such a small dataset. 
+ 
+We additionally verified that many query-adaptive methods beat not just 50-50 RRF but the dataset-specific mean-optimal weight (48/128 significant, 46 surviving FDR). Ultimately our contribution is a framework for practitioners to determine the most appropriate fusion method given their dataset characteristics (mean optimal weight intervals observed in a train split and whether cross-dataset fixed weights fall into the optimal weight intervals for most queries) and deployment requirements (acceptable latency, quality, and available infrastructure).
 
 ---
 
