@@ -62,7 +62,7 @@ We ran a three-retriever pilot: BM25 + RM3 + Qwen3 with the two strongest method
 | NQ | mrr@10 | 0.447 | 0.314 | 0.435 (p<0.001) | 0.549 → 0.578 |
 | ACORD | ndcg@10 | 0.159 | 0.132 | 0.148 (p=0.21) | 0.231 → 0.244 |
 
-Query-adaptive methods are significantly better than RRF at k=3 (p<0.001). Headroom grows with k. The oracle ceiling rises 0.009–0.029 absolute over the best k=2 pair and the oracle−RRF gap widens (e.g. NQ 0.264 vs ≤0.220, MSMARCO 0.230 vs ≤0.175), so k=2 is a lower bound. Recovery via prediction gets harder, as the candidate space explodes from 101 settings at k=2 to 5,151 at k=3. Because RM3 and BM25 are similar retrievers, the simpler k=2 setting with BM25 and Qwen may capture most of the range of effective fusion weights predictable from the query such that adding the third retriever provides little value.
+Query-adaptive methods are significantly better than RRF at k=3 (p<0.001). Headroom grows with k. The oracle ceiling rises 0.009–0.029 absolute over the best k=2 pair and the oracle−RRF gap widens (e.g. NQ 0.264 vs ≤0.220, MSMARCO 0.230 vs ≤0.175), so k=2 is a lower bound. Recovery via prediction gets harder, as the candidate space explodes from 101 settings at k=2 to 5,151 at k=3. 
 
 
 ## W3 — Statistical significance testing

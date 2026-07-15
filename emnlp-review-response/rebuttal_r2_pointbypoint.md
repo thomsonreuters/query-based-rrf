@@ -107,14 +107,14 @@ We ran a three-retriever pilot: BM25 + RM3 + Qwen3 with the two strongest method
 | NQ | mrr@10 | 0.447 | 0.314 | 0.435 (p<0.001) | 0.549 → 0.578 |
 | ACORD | ndcg@10 | 0.159 | 0.132 | 0.148 (p=0.21) | 0.231 → 0.244 |
 
-Query-adaptive methods are significantly better than RRF at k=3 (p<0.001). Headroom grows with k. The oracle ceiling rises 0.009–0.029 absolute over the best k=2 pair and the oracle−RRF gap widens (e.g. NQ 0.264 vs ≤0.220, MSMARCO 0.230 vs ≤0.175), so k=2 is a lower bound. Recovery via prediction gets harder, as the candidate space explodes from 101 settings at k=2 to 5,151 at k=3. Because RM3 and BM25 are similar retrievers, the simpler k=2 setting with BM25 and Qwen may capture most of the range of effective fusion weights predictable from the query such that adding the third retriever provides little value.
+Query-adaptive methods are significantly better than RRF at k=3 (p<0.001). Headroom grows with k. The oracle ceiling rises 0.009–0.029 absolute over the best k=2 pair and the oracle−RRF gap widens (e.g. NQ 0.264 vs ≤0.220, MSMARCO 0.230 vs ≤0.175), so k=2 is a lower bound. Recovery via prediction gets harder, as the candidate space explodes from 101 settings at k=2 to 5,151 at k=3. 
 
 
 ## C1 — Practical implications
 
-In addition to our contribution of an interval-aware loss, the interval structure gives three design implications that our decision framework (§6) operationalizes.
+In addition to our contribution of an interval-aware loss, the interval structure has three design implications our decision framework (§6) operationalizes.
 
-Before deploying any predictor, a practitioner can measure on a train split: the fraction of queries whose optimal interval already contains 0.5 (Figure 1) and RRF headroom relative to the oracle (§6.1). When many queries are already optimal at 0.5 or the headroom is small, per-query prediction has limited utility, and standard RRF (T0) or a dataset-level constant (T1a) is the right choice with no query-time model warranted.
+Before deploying a predictor, a practitioner can measure on a train split the fraction of queries whose optimal interval already contains 0.5 (Figure 1) and RRF headroom relative to the oracle (§6.1). When many queries are already optimal at 0.5 or the headroom is small, per-query prediction has limited utility, and standard RRF (T0) or a dataset-level constant (T1a) is the right choice with no query-time model needed.
 
 Since the optimum is a range, any prediction inside it is optimal, so a cheap predictor often suffices. CPU-only (T1) and encoder (T2) methods recover headroom comparable to the far more expensive LLM predictors on responsive datasets (§5.1, Table 2).
 
