@@ -16,7 +16,7 @@ Compared against a per-query oracle bounding achievable performance, three findi
 
 ## Decision Framework for Fusion Method Selection
 
-Per-query inference latency clusters into three tiers: **T0/T1** need no forward pass, **T2** runs a fine-tuned encoder (~6 ms), and **T3** calls an LLM (~215 ms). The quality-vs-latency plot shown below (see [IR Performance–Latency Tradeoff Analysis](#ir-performance-latency-tradeoff-analysis)) motivates this tiering. Sub-tiers share latency/infra but differ in training requirements.
+Per-query inference latency clusters into three tiers: **T0/T1** need no forward pass, **T2** runs a fine-tuned encoder (~6 ms), and **T3** calls an LLM (~215 ms). The quality-vs-latency plot shown below (see [IR Performance–Latency Tradeoff Analysis](#ir-performancelatency-tradeoff-analysis)) motivates this tiering. Sub-tiers share latency/infra but differ in training requirements.
 
 | Tier | Sub-tier | Method | Latency (95% CI) | Infra | Training data | Query-aware | Top-1 retrieval-aware |
 |---|---|---|---|---|---|---|---|
@@ -240,5 +240,3 @@ python utils/analyze_ir_latency_tradeoff.py \
     --mapping utils/model_mapping.json \
     --output-dir ./results
 ```
-
-
