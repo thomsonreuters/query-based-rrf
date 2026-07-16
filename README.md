@@ -46,6 +46,18 @@ Per-query inference latency clusters into three tiers: **T0/T1** need no forward
 
 ---
 
+## Setup
+
+Dependencies are managed with [uv](https://docs.astral.sh/uv/). Install them with:
+
+```bash
+uv sync
+```
+
+This reads `pyproject.toml` / `uv.lock` and creates a `.venv` with all pinned dependencies, including the `flash-attn` no-build-isolation setup for Linux + CUDA.
+
+---
+
 ## Configuration
 
 All scripts resolve data, results, and model paths through environment variables. Set these before running any script:
