@@ -67,6 +67,8 @@
 
 We thank Reviewer zkNL for the careful reading. We address each point below.
 
+**Code release**: [https://anonymous.4open.science/r/query-based-rrf-BCC8](https://anonymous.4open.science/r/query-based-rrf-BCC8)
+
 
 ## W1 — Novelty and contribution framing
 

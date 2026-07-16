@@ -50,6 +50,8 @@
 
 We thank Reviewer reaf for the careful reading. We address each point below.
 
+**Code release**: https://anonymous.4open.science/r/query-based-rrf-BCC8
+
 
 
 ## W1 — "No novel method recovers the headroom (<25%)."
@@ -68,7 +70,7 @@ predictor (§3.3). On recovery specifically:
 
 
 
-## W2 — "Restricted to a single sparse–dense pair (k=2); generalizability to k>2 is unclear."
+## W2 — "Restricted to a single sparse–dense pair (k=2)"
 
 We agree, and we ran additional experiments in the three-retriever setting. We fuse
 BM25 + RM3 + Qwen3 (Qwen3 is the strongest dense retriever on every dataset; BM25 and RM3
@@ -92,7 +94,7 @@ Third, recovering that headroom becomes harder as k grows, because the space of 
 
 Thank you. We will add:
 
-- **Per-query / learned combination weighting:** Vogt & Cottrell (1999, deriving the optimal
+- Per-query / learned combination weighting: Vogt & Cottrell (1999, deriving the optimal
   weight for linearly combining two retrieval systems); and Sheldon et al. (2011, LambdaMerge, supervised per-query merging that learns to
   weight multiple result lists to optimise a retrieval metric for query reformulations).
 
@@ -125,4 +127,4 @@ We also verified that many query-adaptive methods beat not just RRF but the data
 
 ## C1 — "Remove the zero before the decimal point in Table 1."
 
-Fixed — thank you. 
+Fixed, thank you. 
