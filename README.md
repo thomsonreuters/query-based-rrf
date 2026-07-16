@@ -2,9 +2,9 @@
 
 ## Introduction
 
-Reciprocal Rank Fusion (RRF) combines sparse and dense retrievers in hybrid search, but standard RRF uses a fixed, uniform weight regardless of query. Query-aware methods assume the per-query optimal weight is a single point — an assumption we test empirically.
+Reciprocal Rank Fusion (RRF) combines sparse and dense retrievers in hybrid search, but standard RRF uses one fixed weight regardless of query. Query-aware methods assume the per-query optimal weight is a single point — an assumption we test empirically.
 
-This repo studies dynamic fusion weight prediction across four datasets and four sparse–dense retriever pairs. We treat the per-query optimal weight as a **set-valued object** rather than a point, and benchmark ten prediction methods of increasing complexity: a dataset-level constant, linear regression, fine-tuned encoder LMs, and LLMs (zero-shot and few-shot).
+This repo studies dynamic fusion weight prediction across four datasets and four sparse–dense retriever pairs. We treat the per-query optimal weight as a **set-valued object** rather than a point. We benchmark ten prediction methods of increasing complexity: a dataset-level constant, linear regression, fine-tuned encoder LMs, and LLMs (zero-shot and few-shot).
 
 Compared against a per-query oracle bounding achievable performance, three findings emerge:
 
@@ -16,7 +16,7 @@ Compared against a per-query oracle bounding achievable performance, three findi
 
 ## Decision Framework for Fusion Method Selection
 
-Per-query inference latency clusters into three tiers: **T0/T1** need no forward pass, **T2** runs a fine-tuned encoder (~6 ms), and **T3** calls an LLM (~215 ms). The quality-vs-latency plot shown below (see [IR Performance–Latency Tradeoff Analysis](#ir-performancelatency-tradeoff-analysis)) motivates this tiering. Sub-tiers share latency/infra but differ in training requirements.
+Per-query inference latency clusters into three tiers. **T0/T1** need no forward pass, **T2** runs a fine-tuned encoder (~6 ms), and **T3** calls an LLM (~215 ms). The quality-vs-latency plot shown below (see [IR Performance–Latency Tradeoff Analysis](#ir-performancelatency-tradeoff-analysis)) motivates this tiering. Sub-tiers share latency/infra but differ in training requirements.
 
 | Tier | Sub-tier | Method | Latency (95% CI) | Infra | Training data | Query-aware | Top-1 retrieval-aware |
 |---|---|---|---|---|---|---|---|
@@ -77,6 +77,12 @@ cp .env.local .env
 
 Scripts load `.env` automatically via `utils/env.py`. You can also add the variables directly to your shell profile (`~/.zshrc` / `~/.bashrc`) or set them in your SageMaker environment settings.
 
+> Not every script uses `utils/env.py` yet — a few still fall back to hardcoded paths from a
+> previous environment when the env vars aren't set. See
+> [`docs/REPO_OVERVIEW.md`](./docs/REPO_OVERVIEW.md#known-inconsistencies--tech-debt) for the
+> exceptions, and for implementation detail (config keys, per-experiment architecture, output
+> file formats) not covered here.
+
 ---
 
 ## Data Collection
@@ -98,7 +104,8 @@ Choose the script based on the dataset characteristics:
 ---
 
 ## Fusion Strategy Evaluation
-### Fuse Search Results Use Specific Weight
+
+### Fuse Search Results Using a Specific Weight
 
 After obtaining the predicted optimal weights from the model, use:
 
@@ -113,16 +120,20 @@ This script fuses search results from different retrievers, including:
 
 The fused results are saved in **TREC format**.
 
+> This script has no CLI args — edit the constants at the bottom of the file before running.
+> The predicted-weights branch (`use_fixed_weight = False`) points `experiment` at a stale
+> hardcoded path (an old experiment directory that no longer exists) — set it to your actual
+> experiment directory first.
+
 Finally, use:
 
 ```
 helper_5_ir_metrics.py
 ```
 
-to compute evaluation metrics such as **nDCG** and **MRR**.
+to compute evaluation metrics: **nDCG**, **MRR**, and **MAP** (both @5 and @10, with bootstrap confidence intervals).
 
 ---
-
 
 ## Experiments
 
@@ -181,6 +192,10 @@ Fine-tuned encoder LMs that predict a fusion weight from the query text alone, w
 | [`experiment/roberta-regression/roberta-experiment-mean-best-weight`](./experiment/roberta-regression/roberta-experiment-mean-best-weight) | RoBERTa | mean optimal weight (regression) |
 | [`experiment/roberta-interval-weight`](./experiment/roberta-interval-weight) | RoBERTa | interval-aware satisficing loss |
 
+Only the interval-aware variants (ModernBERT interval, RoBERTa interval) are counted among the
+ten methods benchmarked in the Decision Framework above. The regression (mean optimal weight)
+variants are earlier baselines kept in the repo for comparison.
+
 ---
 
 ### T2b: Small Encoder LM (passage-conditioned)
@@ -194,6 +209,10 @@ See: [`experiment/modern-bert-passage-conditioned`](./experiment/modern-bert-pas
 ### T3a: Dynamic Alpha Tuning (DAT, zero-shot)
 
 An LLM scores the top-1 result from each retriever (sparse and dense) on a 0–5 scale; the fusion weight is derived from the relative scores. Requires no labeled training data.
+
+Two models are benchmarked here (Qwen3-32B, Ministral-3-14B), run via the AWS Bedrock backend
+for reported results — together these are the two T3a methods counted in the Decision
+Framework total.
 
 See: [`experiment/dynamic-alpha-tuning`](./experiment/dynamic-alpha-tuning)
 
@@ -210,11 +229,17 @@ An LLM predicts the fusion weight directly from the query, conditioned on in-con
 | [`experiment/llm-fs-qwen3-mean-best-weight`](./experiment/llm-fs-qwen3-mean-best-weight) | Qwen3 | mean optimal weight |
 | [`experiment/llm-fs-qwen3-interval-weight`](./experiment/llm-fs-qwen3-interval-weight) | Qwen3 | interval-aware weight |
 
+Run via the AWS Bedrock backend for reported results. Only the interval-weight variants
+(Ministral 3, Qwen3) are counted among the ten methods benchmarked above. The mean-best-weight
+variants are earlier baselines kept for comparison. (Few-shot example retrieval separately uses
+a smaller `Qwen3-8B` embedding model — not a generation backend — to find similar training
+queries. See `docs/REPO_OVERVIEW.md`.)
+
 ---
 
 ## IR Performance–Latency Tradeoff Analysis
 
-`utils/analyze_ir_latency_tradeoff.py` is a single end-to-end script that takes raw timing and metric spreadsheets, joins them, and produces aggregated CSVs and per-dataset scatter plots.
+`utils/analyze_ir_latency_tradeoff.py` takes raw timing and metric spreadsheets, joins them, and produces aggregated CSVs and per-dataset scatter plots.
 
 ### Required inputs
 
