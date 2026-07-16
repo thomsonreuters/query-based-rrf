@@ -1,10 +1,10 @@
 # Repository Overview: query-based-rrf
 
-For project motivation, the latency/quality decision framework (tiers T0–T3b), and top-level
-usage instructions, see [`README.md`](../README.md) — that is the canonical entry point. This
+For project motivation, the latency/quality decision framework (tiers T0–T3b), and usage
+instructions, see [`README.md`](../README.md), the canonical entry point. This
 document covers implementation details that aren't in the README: the full directory layout,
-the data-prep pipeline, per-experiment config/architecture specifics, output file formats, and
-known inconsistencies worth cleaning up.
+the data-prep pipeline, per-experiment config/architecture specifics, and output file formats.
+It also tracks known inconsistencies worth cleaning up.
 
 ---
 
@@ -59,7 +59,6 @@ query-based-rrf/
     ├── dynamic-alpha-tuning/
     │   ├── dynamic_alpha_tuning.py     # current entry point (batched, cached, env-driven paths)
     │   ├── dat-infer.py                # single-dataset latency probe (hardcoded paths)
-    │   ├── dat-infer-gpt.py            # gpt-5.2 latency probe via internal AI Platform backend
     │   ├── postprocess_metrics.py      # formats metrics.csv → "mean [lo, hi]" strings
     │   └── test_bedrock.py             # Bedrock connectivity smoke test
     ├── llm_backend.py                  # shared LLM backend classes (Bedrock / local HF)
@@ -106,15 +105,15 @@ edit and rerun per dataset/combo.
    `get_mean_best_weight.py`, which does the same interval-collapsing logic in one pass):
    produces the `mean_best_weight` regression target used by Ridge/RoBERTa/ModernBERT.
 
-Steps 4–5 read `BASE_DATA_DIR` (env var, falls back to a hardcoded cluster path) but — unlike
-steps 1–3 — are currently hardcoded to a single dataset/combo/split (`nq` /
-`bm25_vs_biencoder` / `train`) rather than looping over all 16; re-point the hardcoded path at
+Steps 4–5 read `BASE_DATA_DIR` (env var, falls back to a hardcoded cluster path). Unlike
+steps 1–3, they're currently hardcoded to a single dataset/combo/split (`nq` /
+`bm25_vs_biencoder` / `train`) rather than looping over all 16 — re-point the hardcoded path at
 the top of each file per dataset/combo you need to process.
 
-> **Known bug:** `helper_90_friendly_intervals.py`'s output path is computed via
-> `input_csv.replace(".csv", "_friendly_intervals.csv")`, but the hardcoded input path in the
-> script has no `.csv` in it — so the replace is a no-op and the script silently overwrites its
-> own input file instead of writing a new one. Worth fixing before relying on this step.
+> **Known bug:** `helper_90_friendly_intervals.py` computes its output path via
+> `input_csv.replace(".csv", "_friendly_intervals.csv")`, but the hardcoded input path has no
+> `.csv` in it — the replace is a no-op, so the script silently overwrites its own input instead
+> of writing a new file. Worth fixing before relying on this step.
 
 ### Downstream analysis & visualization
 
@@ -167,7 +166,7 @@ architecture, `roberta-large` by default, `max_length=64`, `lr=2e-5`, 10 epochs,
   bottom of the file for your hardware).
 - **`experiment/roberta-interval-weight/`** — same architecture, but trained against the
   `friendly_best_weights` interval label (parsed into `[left, right]`, widest interval picked if
-  multiple) with a custom **interval-aware satisficing loss**:
+  multiple). Uses a custom **interval-aware satisficing loss**:
   `relu(left - pred)² + relu(pred - right)²` (zero loss inside the interval, squared-hinge
   penalty outside it). Metrics use the interval midpoint as the point-estimate proxy for
   R²/Pearson/Spearman. Multi-GPU only (`run_mul.py`, no sequential `run.py`).
@@ -190,8 +189,8 @@ Three variants, all built on `answerdotai/ModernBERT-large`, `max_length=64` exc
   `roberta-interval-weight`, `fp16=True`. Multi-GPU only.
 - **`experiment/modern-bert-passage-conditioned/`** — same architecture/loss as
   `modern-bert-interval-weight`, but the model input is
-  `f"{query_text} {sep} {sparse_top1_passage_text} {sep} {dense_top1_passage_text}"` — the top-1
-  document per retriever (read from the `.trec` files) with its text loaded from
+  `f"{query_text} {sep} {sparse_top1_passage_text} {sep} {dense_top1_passage_text}"`. The top-1
+  document per retriever (read from the `.trec` files) has its text loaded from
   `corpus.jsonl`. Requires extra config keys (`data.corpus_path`,
   `data.{sparse,dense}_trec_{train,test}`), `max_length=1024` to fit query + 2 passages, and a
   reduced `batch_size=8` to avoid OOM. Multi-GPU only.
@@ -209,12 +208,15 @@ Shared backend (`experiment/llm_backend.py`): `BedrockBackend` (AWS Bedrock, e.g
 `Qwen/Qwen3-32B`, bf16), `LocalMistralBackend` (local HF Ministral-3-14B, bf16). Each script's
 `BACKEND` constant selects among `"bedrock"` / `"local_qwen3"` / `"local_mistral"` — the main
 batch-scoring scripts default to local backends, the `*_infer.py` latency-benchmark variants
-default to `"bedrock"`.
+default to `"bedrock"`. Reported results use the Bedrock backend regardless of a script's
+default — `BACKEND` was set to `"bedrock"` for the runs behind the numbers in
+`experiment-results.md` and the README's Decision Framework table.
 
 Few-shot exemplars are retrieved, not random: BM25 top-5 (`bm25s`) plus dense top-5
-(`SentenceTransformer('Qwen/Qwen3-8B')` cosine similarity) over training-set queries, merged and
-deduped by `query_id` (up to 10 context examples). Retrieval here is query-similarity retrieval
-for exemplar selection — only query text goes into the prompt, not retrieved passage content.
+(`SentenceTransformer('Qwen/Qwen3-8B')` cosine similarity) over training-set queries. Results
+are merged and deduped by `query_id` (up to 10 context examples). This is exemplar retrieval
+by query similarity, not document retrieval — only query text goes into the prompt, not
+passage content.
 Prompt templates live in `mean_best_weight_prompt.json` / `interval_weight_prompt.json`
 (`interval-weight` variants swap the target label to `friendly_best_weights`). Output is parsed
 with a regex, falling back to 0.50 if unparseable.
@@ -248,10 +250,6 @@ written out as a re-ranked `.trec` file.
 - **`dat-infer.py`** — a companion single-dataset latency probe: same scoring logic, but
   sequential (no batching/caching) with per-query `time.perf_counter()` timing. Paths are
   hardcoded rather than env-driven; only `("msmarco", "dev")` is active.
-- **`dat-infer-gpt.py`** — the same latency-probe structure, but scores via an internal
-  AI-Platform-authenticated OpenAI endpoint (`gpt-5.2`) instead of `llm_backend.py` — a
-  separate, self-contained `LLMClient` implementation. Only `msmarco` is currently uncommented,
-  though on-disk output evidence shows it was previously run as a full 4-dataset sweep.
 - **`postprocess_metrics.py`** — CLI: `python postprocess_metrics.py <metrics.csv>`. Formats
   bootstrap-CI metric columns into `"mean [lower, upper]"` strings, writing
   `metrics_processed.csv` alongside the input.
@@ -259,8 +257,8 @@ written out as a re-ranked `.trec` file.
   validate credentials before relying on the Bedrock backend path.
 
 Backends available across this tier: AWS Bedrock (`qwen.qwen3-32b-v1:0`), local HF Qwen3-32B
-(default), local HF Ministral-3-14B (available, not default), and the internal AI-Platform
-GPT-5.2 endpoint (only in `dat-infer-gpt.py`).
+(default), local HF Ministral-3-14B (available, not default). Reported results use the Bedrock
+backend for both models regardless of `dynamic_alpha_tuning.py`'s local default.
 
 ---
 
@@ -289,12 +287,12 @@ GPT-5.2 endpoint (only in `dat-infer-gpt.py`).
   the `.env.local` loading mechanism the README describes isn't actually wired into most entry
   points yet.
 - **Hardcoded fallback paths are inconsistent across the codebase.** Most scripts fall back to
-  a shared cluster path; all four `experiment/llm-fs-*/*_infer.py` latency-benchmark scripts
-  (both mean-best-weight and interval-weight variants, ministral and qwen3) and
-  `experiment/dynamic-alpha-tuning/dat-infer{,-gpt}.py` still fall back to (or are entirely
-  hardcoded to) an older SageMaker-specific path from a previous environment. The non-`_infer`
-  `llm_predict_*.py` scripts are a separate inconsistency: three of the four use a hardcoded
-  relative `../../dataset/...` path with no env var at all, while only
+  a shared cluster path. All four `experiment/llm-fs-*/*_infer.py` latency-benchmark scripts
+  (both mean-best-weight and interval-weight variants, ministral and qwen3), plus
+  `experiment/dynamic-alpha-tuning/dat-infer.py`, still fall back to (or hardcode) an older
+  SageMaker-specific path from a previous environment. The non-`_infer` `llm_predict_*.py`
+  scripts are a separate inconsistency: three of the four hardcode a relative
+  `../../dataset/...` path with no env var, while only
   `llm-fs-qwen3-interval-weight/llm_predict_qwen3.py` reads `BASE_DATA_DIR`. Worth
   standardizing all of these on `utils/env.py` + `.env.local`.
 - **TREC-COVID** is not used by any current script — drop any remaining references to it in
