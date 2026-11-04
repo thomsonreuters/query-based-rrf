@@ -2,6 +2,8 @@
 
 ## Introduction
 
+This repository accompanies the paper [**Optimal Fusion Weights Form Intervals, Not Points: A Latency-Aware Study of Query-Adaptive WRRF**](https://arxiv.org/abs/2610.24341) (arXiv:2610.24341). See [Citation](#citation) below.
+
 Reciprocal Rank Fusion (RRF) combines sparse and dense retrievers in hybrid search, but standard RRF uses one fixed weight regardless of query. Query-aware methods assume the per-query optimal weight is a single point — an assumption we test empirically.
 
 This repo studies dynamic fusion weight prediction across four datasets and four sparse–dense retriever pairs. We treat the per-query optimal weight as a **set-valued object** rather than a point. We benchmark ten prediction methods of increasing complexity: a dataset-level constant, linear regression, fine-tuned encoder LMs, and LLMs (zero-shot and few-shot).
@@ -276,4 +278,22 @@ python utils/analyze_ir_latency_tradeoff.py \
     --metrics acord.csv msmarco.csv nfcorpus.csv nq.csv \
     --mapping utils/model_mapping.json \
     --output-dir ./results
+```
+
+---
+
+## Citation
+
+If you use this code or build on these findings, please cite our paper:
+
+> Iris Ma, Zahra Shekarchi, Stuart Mcilroy, Mahtab Farrokh, Fattane Zarrinkalam, and Joel Stremmel. 2026. *Optimal Fusion Weights Form Intervals, Not Points: A Latency-Aware Study of Query-Adaptive WRRF.* [arXiv:2610.24341](https://arxiv.org/abs/2610.24341).
+
+```bibtex
+@article{ma2026optimal,
+  title   = {Optimal Fusion Weights Form Intervals, Not Points: A Latency-Aware Study of Query-Adaptive WRRF},
+  author  = {Ma, Iris and Shekarchi, Zahra and Mcilroy, Stuart and Farrokh, Mahtab and Zarrinkalam, Fattane and Stremmel, Joel},
+  journal = {arXiv preprint arXiv:2610.24341},
+  year    = {2026},
+  url     = {https://arxiv.org/abs/2610.24341}
+}
 ```
