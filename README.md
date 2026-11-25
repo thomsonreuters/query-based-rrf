@@ -237,6 +237,17 @@ queries. See `docs/REPO_OVERVIEW.md`.)
 
 ---
 
+### QPP-driven fusion (baseline)
+
+Per-query weights from post-retrieval query performance predictors (NQC, WIG, SMV, σ_k, …) on
+each retriever's top-200 scores. Four variants: label-free QPP ratio, calibrated, linear
+(satisficing loss) and gradient-boosted. CPU only; no GPU or LLM at fusion time. Also reports a
+tuned static weight w\*.
+
+See: [`experiment/qpp-fusion`](./experiment/qpp-fusion)
+
+---
+
 ## IR Performance–Latency Tradeoff Analysis
 
 `utils/analyze_ir_latency_tradeoff.py` takes raw timing and metric spreadsheets, joins them, and produces aggregated CSVs and per-dataset scatter plots.
