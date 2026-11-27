@@ -86,117 +86,43 @@ Asks:
 
 Dear Reviewer 25bQ:
 
-Thank you very much for your careful and detailed review. We are encouraged by your recognition of the interval view, our statistical testing, and our detailed and candid analysis of the results. Below, we address your comments point by point. The conventions of the tables are in our general response.
+Thank you very much for your careful and detailed review, and for recognizing the interval view, our statistical testing and our candid analysis. Below, we give the conclusion and the main numbers for each point. The complete results will be in the revised paper. The conventions of the numbers are in our general response. Four numbers in a row are for MS MARCO / NQ / ACORD / NFCorpus.
 
-## W1, W3, T1, T2 and S5 (paper updates, no new experiment)
+## W1, W3, T1, T2 and S5
 
-**W1, W3, T1, T2 and S5.** Thank you for reading the paper so carefully and for pointing these out. We will fix all of them in the revised paper:
-
-- **W1 and T1 (abstract):** "dynamic fusion methods" becomes "method-setting comparisons" (128 = 8 methods × 16 settings).
-- **W3 (interval width):** the text and the caption will match Table 6.
-- **T2 (Table 1 caption):** n = 16 (4 datasets × 4 retriever pairs), or 32 where a sub-tier pools two methods.
-- **S5 (single retrievers):** we will add each retriever alone to Table 7.
+W1, W3, T1, T2 and S5. We will fix all of them. The abstract will say "method-setting comparisons" (128 = 8 methods × 16 settings). The text and the caption will match Table 6. The Table 1 caption will give n (16, or 32 where a sub-tier pools two methods). Table 2 will list each retriever alone.
 
 ## W2
 
-**W2 (tuned static constant).** Thank you for this careful point and for the concrete suggestion. We added the tuned constant w* (Table D). It is a strong static baseline, and the per-query oracle is still far above it.
-
-**Table D:** w* is the single weight with the best average metric on the training queries.
-
-|Method|MS MARCO|NQ|ACORD|NFCorpus|
-|---|---|---|---|---|
-|Standard RRF|.282|.345|.135|.373|
-|Mean Optimal Weight|.302|.377|.136|.376|
-|Tuned constant w*|.334|.420|.147|.381|
-|Oracle (per-query best w)|.448|.522|.215|.439|
-
-- **Per-query weights still have room:** the oracle is .058 to .113 above w* on every dataset. The best per-query methods are within .010 of w*. So the gain from a per-query weight is there, and it is hard to predict (Section 5.2).
+W2 (tuned static constant). We added the tuned constant w*, the best single weight on the training queries. It is a strong static baseline, and the per-query oracle is still far above it. w* reaches .334 / .420 / .147 / .381. The oracle is .058 to .114 above it, and the best per-query methods are within .010 of it. So the gain from a per-query weight is there, and it is hard to predict (Section 5.2).
 
 ## W4
 
-**W4 (point estimation; ε-insensitive loss).** Thank you for these three clear suggestions. We will follow all three in the revised paper:
-
-- **(i) and (iii) The claim and the positioning:** L057–059 will read "We show that optimal WRRF weights typically form intervals, not points, so point losses supervise them inefficiently." The abstract and the introduction will present the paper as an empirical characterisation of the optimal fusion weight.
-- **(ii) The loss:** Section 3.5.2 (L274) introduces $\mathcal{L}_{\text{sat}}$ as "built on the ε-insensitive tube of SVR" (Smola and Schölkopf, 2004). In the form you give, the one difference from the standard loss is ε: it is not a fixed hyperparameter. Each query has its own, given by its optimal interval $\mathcal{I}_q$. We will add the exact form you give, and the link to interval regression (Rigaill et al., 2013; Drouin et al., 2017), to that section.
+W4 (point estimation; ε-insensitive loss). We will follow all three suggestions. (i) and (iii): L057–059 will read "We show that optimal WRRF weights typically form intervals, not points, so point losses supervise them inefficiently." The abstract and the introduction will present the paper as an empirical characterisation. (ii): Section 3.5.2 (L274) introduces L_sat as "built on the ε-insensitive tube of SVR". We will add the exact form you give. Its one difference from the standard loss is that ε is not a fixed hyperparameter: each query has its own, given by its optimal interval I_q. We will also add the link to interval regression (Rigaill et al., 2013; Drouin et al., 2017).
 
 ## W5
 
-**W5 (training budget).** Thank you for this careful analysis and for the concrete suggestion. Appendix B gives one general configuration and does not list the settings for each dataset. We will add them. The encoders on ACORD and NFCorpus use batch size 16 (8 for the passage-conditioned model), warm-up over the first 10% of the training steps, and evaluation after every epoch. The other settings are as in Appendix B.
-
-- **Steps:** training runs for 30 steps on ACORD (3 warm-up) and 1,150 to 1,190 on NFCorpus (115 to 119 warm-up). The passage-conditioned model has twice as many.
-- **Results:** RoBERTa, ModernBERT and the passage-conditioned model score .137 / .139 / .136 on ACORD and .376 / .377 / .378 on NFCorpus. Standard RRF is .135 and .373.
+W5 (training budget). Appendix B gives one general configuration and does not list the settings for each dataset. We will add them. The encoders on ACORD and NFCorpus use batch size 16 (8 for the passage-conditioned model), warm-up over the first 10% of the steps, and evaluation after every epoch. Training runs for 30 steps on ACORD (3 warm-up) and 1,150 to 1,190 on NFCorpus (115 to 119 warm-up), well past warm-up. We also trained by steps, as you suggest (1,000 steps, 100 warm-up, three seeds). RoBERTa and ModernBERT stay within .003 of Table 2 on both datasets. The passage-conditioned model scores .140 on ACORD (.148 in Table 2).
 
 ## W6
 
-**W6 (DAT recovery).** Thank you for this careful point. We now report DAT inside each family (Table E), because it uses its own fusion rule. On MS MARCO and NQ, the two views agree within 4 points.
-
-- **Formula:** DAT fuses scores, not ranks (Section 2): $s(d) = \alpha\,\tilde{s}_{\text{sparse}}(d) + (1-\alpha)\,\tilde{s}_{\text{dense}}(d)$. The retrieval scores are min-max normalized per query. $\alpha = S_{\text{sparse}} / (S_{\text{sparse}} + S_{\text{dense}})$, where the two $S$ are the LLM scores (0 to 5) of the top-1 results, with the special cases of the DAT paper (its Eq. 6 and 7).
-- **Matched references:** for DAT's rule, we swept α from 0 to 1. This gives an equal-weight baseline (α = 0.5) and a per-query oracle for its family. We also used DAT's α as the weight in WRRF, so that it shares the oracle of all other methods.
-
-**Table E:** recovery of DAT (%), from the averages. DAT was rerun for this analysis; our general response gives the change from Table 2.
-
-|Recovery (%)|MS MARCO|NQ|ACORD|NFCorpus|
-|---|---|---|---|---|
-|DAT Qwen3, own rule and own oracle|−1|7|6|5|
-|DAT Qwen3, weight used in WRRF|0|7|8|4|
-|DAT Ministral3, own rule and own oracle|13|33|−8|−2|
-|DAT Ministral3, weight used in WRRF|16|33|3|5|
-
-For DAT's family, the baseline is .297 / .360 / .141 / .378 and the oracle is .432 / .507 / .205 / .434.
-
-## --- Part 2 of 2 (second comment) ---
+W6 (DAT recovery). We now report DAT inside its own family, because it uses its own fusion rule. DAT fuses scores, not ranks (Section 2): s(d) = α · s_sparse(d) + (1 − α) · s_dense(d), with min-max normalized retrieval scores. α = S_sparse / (S_sparse + S_dense), where S are the LLM scores (0 to 5) of the top-1 results (Eq. 6 and 7 of the DAT paper, with its special cases). Sweeping α from 0 to 1 gives an equal-weight baseline (α = 0.5) and a per-query oracle for this family. Against them, with the DAT scores of Table 2, DAT recovers −6 / 7 / 3 / −2 % (Qwen3) and 4 / 24 / −3 / −14 % (Ministral3) of its own headroom.
 
 ## S1
 
-**S1 (retrieval-internal features).** Thank you for this suggestion. Retrieval-internal features add a small gain over the query text (Table F). We tested the four feature families you list, and the top-1 score of each channel (standardized within its list), on all 16 settings.
-
-**Table F:** the new row is a regressor on these features only.
-
-|Method|MS MARCO|NQ|ACORD|NFCorpus|
-|---|---|---|---|---|
-|Ridge Regressor (MBW), query TF-IDF (Table 2)|.303|.377|.137|.376|
-|Retrieval features (new)|.310|.388|.138|.379|
-
-- **As a predictor:** the gain over the query text is .007 on MS MARCO and .011 on NQ. The oracle (Table D) is .138 and .134 above the new row.
-- **Correlation with misprediction (as in Appendix F.6):** on MS MARCO and NQ, the strongest feature is the top-1 score of the dense channel, with |r| = .23 and .32 (mean over the retriever pairs). The strongest of the four you list has .13 and .23. The surface features have .09 at most.
+S1 (retrieval-internal features). These features add a small gain over the query text. We tested the four families you list and the top-1 score of each channel, on all 16 settings. A regressor on them is .007 (MS MARCO) and .011 (NQ) above the Ridge Regressor on query TF-IDF. On these two datasets, the strongest feature, the top-1 score of the dense channel, correlates with misprediction at |r| = .23 and .32. The surface features of Appendix F.6 have .09 at most.
 
 ## S2
 
-**S2 (depth, k, metric).** Thank you for this suggestion. Intervals stay the most common optimal set at depth 400 and at every k we tested. Under the two metrics, the optimal sets of a query overlap in most cases (Table G).
-
-**Table G:** k = 60, over the four retriever pairs. An interval is a single or multi-interval optimal set. Both depths are cut from the same depth-400 runs, so depth 200 can differ slightly from Table 3.
-
-| |MS MARCO|NQ|ACORD|NFCorpus|
-|---|---|---|---|---|
-|Interval, depth 200 (% of queries)|70.9|74.6|76.3|73.1|
-|Interval, depth 400 (% of queries)|70.8|74.7|75.0|73.1|
-|Depths 200 and 400 share an optimal weight (% of reachable queries)|99.5|99.6|92.4|97.6|
-|MRR@10 and nDCG@10 share an optimal weight (% of reachable queries)|99.8|99.0|85.8|96.1|
-
-- **k:** for k = 10, 20 and 100, the share of intervals is 68% to 80%.
-- **Metric:** when the two sets share a weight, the nDCG@10 set lies inside the MRR@10 set. With one relevant document, the two sets are the same.
+S2 (depth, k, metric). Intervals stay the most common optimal set at depth 400 and at every k we tested. At k = 60, the optimal set is an interval (single or multi) for 70.8% to 76.3% of the queries at depth 200 (from Table 3) and for 70.8% to 75.0% at depth 400. For k = 10, 20 and 100, this share is 68% to 80%. MRR@10 and nDCG@10 share an optimal weight for 85.8% to 99.8% of the reachable queries.
 
 ## S3
 
-**S3 (point vs interval).** Thank you for this suggestion. The interval variant is higher on all four datasets, and the difference is significant on MS MARCO and NQ (Table A in our general response).
+S3 (point vs interval). With the same ModernBERT and only the loss changed, the interval variant is .006 above MSE on MS MARCO and NQ (BM(Q) pair), and the difference is significant. Point 5 of our general response gives the details.
 
 ## S4
 
-**S4 (baseline on the neighbours' labels).** Thank you for this suggestion. The neighbours carry useful signal, mainly through their intervals. Ministral3 FS stays the highest row on MS MARCO, NQ and ACORD (Table H).
-
-**Table H:** the kNN rows retrieve the 5 + 5 neighbours as in App. C.1 and make no LLM call.
-
-|Method|MS MARCO|NQ|ACORD|NFCorpus|
-|---|---|---|---|---|
-|kNN, mean of $\bar{w}$|.306|.382|.138|.377|
-|kNN, median of $\bar{w}$|.312|.389|.138|.377|
-|kNN, interval vote|.321|.409|.138|.378|
-|Qwen3 FS (IW)|.315|.396|.137|.379|
-|Ministral3 FS (IW)|.325|.412|.145|.375|
-
-- **Mean and median of $\bar{w}$:** on MS MARCO and NQ, they are .004 to .012 above Mean Optimal Weight (Table D). Both LLM methods are significantly above them (paired t-test on the average over the four pairs, p < .05).
-- **Interval vote:** this rule predicts the weight that lies in the optimal intervals of the most neighbours. On MS MARCO and NQ, it is above Qwen3 FS and within .004 of Ministral3 FS.
-- **What this separates:** on MS MARCO and NQ, most of the gain of the few-shot methods over Mean Optimal Weight comes from the neighbours. Their intervals give more than their midpoints (.321 against .312, and .409 against .389), which is in line with our interval view.
+S4 (baseline on the neighbours' labels). The neighbours carry useful signal, mainly through their intervals. We used the same 5 + 5 neighbours (App. C.1) with no LLM call. On MS MARCO and NQ, the interval vote (the weight inside the optimal intervals of the most neighbours) scores .321 and .409. This is above the median of the neighbours' w̄ (.312 and .389) and Qwen3 FS (.315 and .396), and within .004 of Ministral3 FS (.325 and .412). So most of the gain of the few-shot methods over Mean Optimal Weight comes from the neighbours, and their intervals give more than their midpoints. This is in line with our interval view.
 
 ## Closing
 
